@@ -35,7 +35,7 @@ export interface ShiftBreak {
   id: string;
   startTime: string; // ISO 8601
   endTime?: string;  // ISO 8601
-  durationMinutes?: number;
+  durationMinutes: number;
   isPaid: boolean;
 }
 
@@ -52,4 +52,32 @@ export interface ShiftRecord {
   hourlyRate: number;
   status: ShiftStatus;
   notes?: string;
+}
+
+export interface CreateShiftInput {
+  scheduledStart: string; // ISO 8601
+  scheduledEnd: string;   // ISO 8601
+  breakDurationMinutes: number;
+  role?: UserRole;
+  location?: string;
+  notes?: string;
+}
+
+export interface ShiftConflict {
+  id: string;
+  type: 'overlap' | 'unusually_long';
+  severity: 'warning' | 'caution';
+  shiftId1: string;
+  shiftId2?: string;
+  shift1Summary: string;
+  shift2Summary?: string;
+  message: string;
+}
+
+export interface ElapsedTime {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalSeconds: number;
+  formatted: string;
 }

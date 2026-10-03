@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../state/AuthContext';
+import { ShiftProvider } from '../state/ShiftContext';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 function RootNavigationLayout() {
@@ -46,7 +47,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootNavigationLayout />
+        <ShiftProvider>
+          <RootNavigationLayout />
+        </ShiftProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

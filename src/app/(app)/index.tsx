@@ -1,13 +1,54 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, GlassCard } from '../../components';
+import { useRouter } from 'expo-router';
+import {
+  ActiveShiftCard,
+  Button,
+  GlassCard,
+  IntegrityBanner,
+  ShiftItem,
+} from '../../components';
 import { useAuth } from '../../state/AuthContext';
+import { useShifts } from '../../state/ShiftContext';
+import { formatShortDate, getEndOfWeek, getStartOfWeek } from '../../utils/date';
 import { borderRadius, colors, layout, spacing } from '../../theme';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user, signOut } = useAuth();
+  const {
+    weeklyShifts,
+    activeShift,
+    isLoading,
+    isActionLoading,
+    error,
+    conflicts,
+    refreshShifts,
+    startShift,
+    endShift,
+    clearError,
+  } = useShifts();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshShifts();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleSignOut = async () => {
     setIsLoggingOut(true);
@@ -18,68 +59,133 @@ export default function HomeScreen() {
     }
   };
 
+  const handleStartShift = async (shiftId?: string) => {
+    clearError();
+    try {
+      await startShift(shiftId);
+    } catch {
+      // Error handled via ShiftContext error state
+    }
+  };
+
+  const handleEndShift = async (shiftId: string) => {
+    clearError();
+    try {
+      await endShift(shiftId);
+    } catch {
+      // Error handled via ShiftContext error state
+    }
+  };
+
+  const weekStart = getStartOfWeek();
+  const weekEnd = getEndOfWeek();
+  const weekRangeLabel = `${formatShortDate(weekStart.toISOString())} – ${formatShortDate(weekEnd.toISOString())}`;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* Staff Header */}
         <View style={styles.header}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>ShiftTrack</Text>
-          </View>
-          <Text style={styles.title}>Welcome back,</Text>
-          <Text style={styles.userName}>{user?.name ?? 'Staff Member'}</Text>
-        </View>
-
-        <GlassCard style={styles.card}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Role</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>
-                {user?.role ? user.role.toUpperCase() : 'STAFF'}
-              </Text>
+          <View style={styles.headerInfo}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>ShiftTrack</Text>
             </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{user?.email}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Hourly Rate</Text>
-            <Text style={styles.rateValue}>
-              ${user?.hourlyRate?.toFixed(2) ?? '0.00'} / hr
+            <Text style={styles.title}>Hello, {user?.name?.split(' ')[0] ?? 'Staff'}</Text>
+            <Text style={styles.roleSubtext}>
+              {user?.role?.toUpperCase() ?? 'STAFF'} • ${user?.hourlyRate?.toFixed(2) ?? '0.00'}/hr
             </Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.statusRow}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Secure Session Active</Text>
-          </View>
-        </GlassCard>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Milestone 2 Active</Text>
-          <Text style={styles.infoSubtitle}>
-            Authentication and navigation architecture established. Shift management and timer workflows will follow in subsequent milestones.
-          </Text>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+            disabled={isLoggingOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out of account"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {isLoggingOut ? (
+              <ActivityIndicator size="small" color={colors.textSecondary} />
+            ) : (
+              <Text style={styles.signOutText}>Sign Out</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.actionContainer}>
+        {/* Global Error Banner */}
+        {Boolean(error) && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Live Active Shift & Timer Section */}
+        <ActiveShiftCard
+          activeShift={activeShift}
+          onStartShift={() => handleStartShift()}
+          onEndShift={handleEndShift}
+          isLoading={isActionLoading}
+        />
+
+        {/* Shift Integrity Assistant Conflict Alerts */}
+        <IntegrityBanner conflicts={conflicts} />
+
+        {/* Weekly Shifts Section Header */}
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+            <Text style={styles.sectionSubtitle}>{weekRangeLabel}</Text>
+          </View>
           <Button
-            title="Sign Out"
-            variant="danger"
-            onPress={handleSignOut}
-            loading={isLoggingOut}
-            style={styles.signOutButton}
+            title="+ Add Shift"
+            variant="secondary"
+            onPress={() => router.push('/(app)/create-shift')}
+            style={styles.addShiftButton}
           />
         </View>
-      </View>
+
+        {/* Weekly Shifts Content */}
+        {isLoading && !isRefreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading weekly shifts...</Text>
+          </View>
+        ) : weeklyShifts.length === 0 ? (
+          <GlassCard style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No Shifts This Week</Text>
+            <Text style={styles.emptySubtitle}>
+              You have no scheduled shifts for {weekRangeLabel}. Tap "+ Add Shift" above to record or schedule a shift.
+            </Text>
+            <Button
+              title="Schedule a Shift"
+              onPress={() => router.push('/(app)/create-shift')}
+              style={styles.emptyAction}
+            />
+          </GlassCard>
+        ) : (
+          <View style={styles.shiftsList}>
+            {weeklyShifts.map((shift) => (
+              <ShiftItem
+                key={shift.id}
+                shift={shift}
+                onClockIn={handleStartShift}
+                canClockIn={!activeShift}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -89,121 +195,139 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
-    flex: 1,
+  scrollContent: {
     paddingHorizontal: layout.screenPaddingHorizontal,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: spacing.lg,
+  },
+  headerInfo: {
+    flex: 1,
   },
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.primaryMuted,
     borderRadius: borderRadius.pill,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    paddingVertical: 3,
+    paddingHorizontal: spacing.sm + 2,
+    marginBottom: spacing.xs,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: 0.3,
   },
   title: {
-    fontSize: 20,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  userName: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '700',
     color: colors.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
-  card: {
-    marginBottom: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  label: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  roleBadge: {
-    backgroundColor: colors.primaryMuted,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 0.5,
-  },
-  rateValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.separator,
-    marginVertical: spacing.sm,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: spacing.xs,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.success,
-    marginRight: spacing.sm,
-  },
-  statusText: {
+  roleSubtext: {
     fontSize: 13,
+    fontWeight: '600',
     color: colors.textSecondary,
-    fontWeight: '500',
+    marginTop: 2,
   },
-  infoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: borderRadius.lg,
+  signOutButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.fillQuaternary,
+    borderRadius: borderRadius.md,
+    minHeight: layout.minTouchTarget,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signOutText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.hairlineBorder,
-    marginBottom: spacing.xl,
+    borderColor: 'rgba(255, 69, 58, 0.25)',
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  infoTitle: {
+  errorText: {
+    fontSize: 13,
+    color: colors.danger,
+    flex: 1,
+    fontWeight: '500',
+  },
+  retryButton: {
+    paddingLeft: spacing.md,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.danger,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  addShiftButton: {
+    minHeight: 38,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  loadingContainer: {
+    paddingVertical: spacing.xxl,
+    alignItems: 'center',
+  },
+  loadingText: {
     fontSize: 14,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  emptyCard: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
-  infoSubtitle: {
-    fontSize: 13,
+  emptySubtitle: {
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 18,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: spacing.lg,
   },
-  actionContainer: {
-    marginTop: 'auto',
-  },
-  signOutButton: {
+  emptyAction: {
     width: '100%',
+  },
+  shiftsList: {
+    marginTop: spacing.xs,
   },
 });
