@@ -25,6 +25,7 @@ import { useShifts } from '../../state/ShiftContext';
 import { formatShortDate, getEndOfWeek, getStartOfWeek } from '../../utils/date';
 import { borderRadius, colors, layout, spacing } from '../../theme';
 import { hapticFeedback } from '../../utils/haptics';
+import { isSimulateShiftApiError, setSimulateShiftApiError } from '../../services';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -88,6 +89,20 @@ export default function HomeScreen() {
     }
   };
 
+  const handleToggleSimulateError = () => {
+    const next = !isSimulateShiftApiError();
+    setSimulateShiftApiError(next);
+    if (typeof globalThis !== 'undefined') {
+      (globalThis as any).__simulateShiftApiError = next;
+    }
+    if (next) {
+      hapticFeedback.warning();
+    } else {
+      hapticFeedback.success();
+    }
+    handleRefresh();
+  };
+
   const weekStart = getStartOfWeek();
   const weekEnd = getEndOfWeek();
   const weekRangeLabel = `${formatShortDate(weekStart.toISOString())} - ${formatShortDate(weekEnd.toISOString())}`;
@@ -111,10 +126,19 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View style={styles.headerInfo}>
               <View style={styles.badgeRow}>
-                <View style={styles.sessionBadge}>
-                  <View style={styles.sessionDot} />
-                  <Text style={styles.sessionText}>STAFF PORTAL</Text>
-                </View>
+                <TouchableOpacity
+                  onLongPress={handleToggleSimulateError}
+                  delayLongPress={700}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel="Hold to toggle simulated network error for demo"
+                >
+                  <View style={styles.sessionBadge}>
+                    <View style={styles.sessionDot} />
+                    <Text style={styles.sessionText}>STAFF PORTAL</Text>
+                  </View>
+                </TouchableOpacity>
+
                 <View style={styles.rateBadge}>
                   <Text style={styles.rateText}>{`${user?.role?.toUpperCase() ?? 'SERVER'} \u2022 \u20B9${user?.hourlyRate?.toFixed(2) ?? '18.50'}/hr`}</Text>
                 </View>
