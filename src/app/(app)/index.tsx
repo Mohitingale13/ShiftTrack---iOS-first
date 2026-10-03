@@ -24,6 +24,7 @@ import { useAuth } from '../../state/AuthContext';
 import { useShifts } from '../../state/ShiftContext';
 import { formatShortDate, getEndOfWeek, getStartOfWeek } from '../../utils/date';
 import { borderRadius, colors, layout, spacing } from '../../theme';
+import { hapticFeedback } from '../../utils/haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleRefresh = async () => {
+    hapticFeedback.light();
     setIsRefreshing(true);
     try {
       await refreshShifts();
@@ -54,29 +56,35 @@ export default function HomeScreen() {
   };
 
   const handleSignOut = async () => {
+    hapticFeedback.heavy();
     setIsLoggingOut(true);
     try {
       await signOut();
+      hapticFeedback.success();
     } finally {
       setIsLoggingOut(false);
     }
   };
 
   const handleStartShift = async (shiftId?: string) => {
+    hapticFeedback.medium();
     clearError();
     try {
       await startShift(shiftId);
+      hapticFeedback.success();
     } catch {
-      // Handled via ShiftContext error state
+      hapticFeedback.error();
     }
   };
 
   const handleEndShift = async (shiftId: string) => {
+    hapticFeedback.heavy();
     clearError();
     try {
       await endShift(shiftId);
+      hapticFeedback.success();
     } catch {
-      // Handled via ShiftContext error state
+      hapticFeedback.error();
     }
   };
 
@@ -136,7 +144,13 @@ export default function HomeScreen() {
           {Boolean(error) && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.medium();
+                  handleRefresh();
+                }}
+                style={styles.retryButton}
+              >
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -162,7 +176,10 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={styles.addShiftButton}
-              onPress={() => router.push('/(app)/create-shift')}
+              onPress={() => {
+                hapticFeedback.light();
+                router.push('/(app)/create-shift');
+              }}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Schedule new shift"
@@ -185,7 +202,10 @@ export default function HomeScreen() {
               </Text>
               <Button
                 title="Schedule a Shift"
-                onPress={() => router.push('/(app)/create-shift')}
+                onPress={() => {
+                  hapticFeedback.light();
+                  router.push('/(app)/create-shift');
+                }}
                 style={styles.emptyAction}
               />
             </GlassCard>

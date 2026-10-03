@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { borderRadius, colors, spacing } from '../theme';
+import { hapticFeedback } from '../utils/haptics';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -32,6 +33,11 @@ export function Input({
   const showPasswordToggle = secureTextEntry !== undefined;
   const actualSecureTextEntry = showPasswordToggle ? !isPasswordVisible : false;
 
+  const handleTogglePassword = () => {
+    hapticFeedback.selection();
+    setIsPasswordVisible((prev) => !prev);
+  };
+
   return (
     <View style={styles.container}>
       {Boolean(label) && <Text style={styles.label}>{label}</Text>}
@@ -54,7 +60,7 @@ export function Input({
         {showPasswordToggle && (
           <TouchableOpacity
             style={styles.toggleButton}
-            onPress={() => setIsPasswordVisible((prev) => !prev)}
+            onPress={handleTogglePassword}
             accessibilityRole="button"
             accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

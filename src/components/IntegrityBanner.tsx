@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ShiftConflict } from '../types';
 import { borderRadius, colors, spacing } from '../theme';
+import { hapticFeedback } from '../utils/haptics';
 
 interface IntegrityBannerProps {
   conflicts: ShiftConflict[];
@@ -17,11 +18,16 @@ export function IntegrityBanner({ conflicts }: IntegrityBannerProps) {
   const overlaps = conflicts.filter((c) => c.type === 'overlap');
   const cautions = conflicts.filter((c) => c.type === 'unusually_long');
 
+  const handleToggleExpand = () => {
+    hapticFeedback.selection();
+    setIsExpanded((prev) => !prev);
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.header}
-        onPress={() => setIsExpanded((prev) => !prev)}
+        onPress={handleToggleExpand}
         activeOpacity={0.7}
       >
         <View style={styles.badge}>

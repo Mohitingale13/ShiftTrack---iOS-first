@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { ShiftRecord } from '../types';
 import { calculateNetDurationMinutes, formatDuration, formatTime } from '../utils/date';
 import { borderRadius, colors, spacing } from '../theme';
+import { hapticFeedback } from '../utils/haptics';
 
 interface ShiftItemProps {
   shift: ShiftRecord;
@@ -24,6 +25,11 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
   const dateObj = new Date(shift.scheduledStart);
   const weekday = dateObj.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
   const dayMonth = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+  const handleClockInPress = () => {
+    hapticFeedback.medium();
+    onClockIn?.(shift.id);
+  };
 
   return (
     <View style={[styles.container, isActive && styles.activeContainer]}>
@@ -86,7 +92,7 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
       {isScheduled && canClockIn && onClockIn && (
         <TouchableOpacity
           style={styles.clockInAction}
-          onPress={() => onClockIn(shift.id)}
+          onPress={handleClockInPress}
           accessibilityRole="button"
           accessibilityLabel={`Clock in for shift on ${weekday}, ${dayMonth}`}
           activeOpacity={0.7}

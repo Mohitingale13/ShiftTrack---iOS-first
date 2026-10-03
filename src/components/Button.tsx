@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  GestureResponderEvent,
   Platform,
   StyleSheet,
   Text,
@@ -9,11 +10,13 @@ import {
   ViewStyle,
 } from 'react-native';
 import { borderRadius, colors, layout, spacing } from '../theme';
+import { hapticFeedback } from '../utils/haptics';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   loading?: boolean;
+  hapticStyle?: 'light' | 'medium' | 'heavy' | 'selection' | 'none';
   style?: ViewStyle | ViewStyle[];
 }
 
@@ -22,10 +25,29 @@ export function Button({
   variant = 'primary',
   loading = false,
   disabled,
+  hapticStyle,
+  onPress,
   style,
   ...rest
 }: ButtonProps) {
   const isActionDisabled = disabled || loading;
+
+  const handlePress = (e: GestureResponderEvent) => {
+    if (!isActionDisabled) {
+      if (hapticStyle === 'none') {
+        // Suppress haptics if explicitly requested
+      } else if (hapticStyle) {
+        hapticFeedback[hapticStyle]();
+      } else if (variant === 'danger') {
+        hapticFeedback.heavy();
+      } else if (variant === 'primary') {
+        hapticFeedback.medium();
+      } else {
+        hapticFeedback.light();
+      }
+    }
+    onPress?.(e);
+  };
 
   return (
     <TouchableOpacity
@@ -40,6 +62,7 @@ export function Button({
       ]}
       disabled={isActionDisabled}
       activeOpacity={0.75}
+      onPress={handlePress}
       {...rest}
     >
       {loading ? (

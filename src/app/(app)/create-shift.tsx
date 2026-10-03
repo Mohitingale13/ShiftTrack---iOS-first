@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Button, GlassCard, Input, ScreenBackground } from '../../components';
 import { useShifts } from '../../state/ShiftContext';
 import { borderRadius, colors, layout, spacing } from '../../theme';
+import { hapticFeedback } from '../../utils/haptics';
 
 export default function CreateShiftScreen() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function CreateShiftScreen() {
     }
 
     if (Object.keys(errors).length > 0) {
+      hapticFeedback.error();
       setValidationErrors(errors);
       return null;
     }
@@ -72,6 +74,7 @@ export default function CreateShiftScreen() {
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       errors.date = 'Invalid date or time value provided.';
+      hapticFeedback.error();
       setValidationErrors(errors);
       return null;
     }
@@ -79,6 +82,7 @@ export default function CreateShiftScreen() {
     // Critical Requirement: End time must be after start time
     if (endDate.getTime() <= startDate.getTime()) {
       errors.endTime = 'End time must be after the start time.';
+      hapticFeedback.error();
       setValidationErrors(errors);
       return null;
     }
@@ -86,6 +90,7 @@ export default function CreateShiftScreen() {
     const totalDurationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
     if (breakMinutes >= totalDurationMinutes) {
       errors.breakMinutes = `Break (${breakMinutes}m) must be less than total shift duration (${Math.round(totalDurationMinutes)}m).`;
+      hapticFeedback.error();
       setValidationErrors(errors);
       return null;
     }
@@ -112,10 +117,16 @@ export default function CreateShiftScreen() {
         notes: notes.trim() || undefined,
       });
 
+      hapticFeedback.success();
       router.back();
     } catch {
-      // Error handled via ShiftContext state
+      hapticFeedback.error();
     }
+  };
+
+  const handleCancel = () => {
+    hapticFeedback.light();
+    router.back();
   };
 
   return (
@@ -134,7 +145,7 @@ export default function CreateShiftScreen() {
             {/* iOS Header */}
             <View style={styles.header}>
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={handleCancel}
                 style={styles.backButton}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel and return"

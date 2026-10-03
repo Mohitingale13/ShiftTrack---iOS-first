@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Button, GlassCard, Input, ScreenBackground } from '../../components';
 import { useAuth } from '../../state/AuthContext';
 import { borderRadius, colors, layout, spacing } from '../../theme';
+import { hapticFeedback } from '../../utils/haptics';
 
 export default function LoginScreen() {
   const { signIn, error: authError, clearError } = useAuth();
@@ -39,7 +40,11 @@ export default function LoginScreen() {
     }
 
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    const isValid = Object.keys(errors).length === 0;
+    if (!isValid) {
+      hapticFeedback.error();
+    }
+    return isValid;
   };
 
   const handleLogin = async () => {
@@ -54,14 +59,16 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     try {
       await signIn({ email: email.trim(), password });
+      hapticFeedback.success();
     } catch {
-      // Auth error is captured in context and displayed via error banner
+      hapticFeedback.error();
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleFillDemoCredentials = () => {
+    hapticFeedback.light();
     setEmail('staff@shifttrack.test');
     setPassword('Password123');
     setValidationErrors({});
