@@ -12,10 +12,21 @@ export interface UserProfile {
   hourlyRate: number;
 }
 
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: UserProfile;
+}
+
 export interface UserSession {
   user: UserProfile | null;
-  isAuthenticated: boolean;
   token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 export type ShiftStatus = 'scheduled' | 'active' | 'break' | 'completed' | 'cancelled';

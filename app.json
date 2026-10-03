@@ -6,6 +6,7 @@
     "description": "A small mobile shift-tracking application for hospitality staff.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "shifttrack",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
@@ -21,6 +22,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
   }
 }
