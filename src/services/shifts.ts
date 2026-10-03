@@ -4,6 +4,44 @@ import { getStartOfWeek } from '../utils/date';
 
 const SHIFTS_STORAGE_KEY = 'shifttrack_mock_shifts_data';
 
+function isWebBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+/**
+ * Test & Development mechanism to simulate network error for demonstration of error states and retry actions.
+ */
+let simulateApiError = false;
+
+export function setSimulateShiftApiError(shouldError: boolean): void {
+  simulateApiError = shouldError;
+}
+
+export function isSimulateShiftApiError(): boolean {
+  return simulateApiError;
+}
+
+/**
+ * Normalizes a shift to ensure both internal and canonical PDF API fields are present.
+ * Canonical PDF fields:
+ * - date: 'YYYY-MM-DD'
+ * - startTime: ISO 8601
+ * - endTime: ISO 8601 or null (when active)
+ * - breakMinutes: total break duration in minutes
+ */
+function normalizeShiftRecord(shift: ShiftRecord): ShiftRecord {
+  const breakMinutes = shift.breaks ? shift.breaks.reduce((acc, b) => acc + (b.durationMinutes || 0), 0) : 0;
+  const scheduledDate = shift.scheduledStart ? shift.scheduledStart.split('T')[0] : '';
+
+  return {
+    ...shift,
+    date: shift.date || scheduledDate,
+    startTime: shift.actualClockIn || shift.scheduledStart,
+    endTime: shift.status === 'active' ? null : (shift.actualClockOut || shift.scheduledEnd),
+    breakMinutes: shift.breakMinutes !== undefined ? shift.breakMinutes : breakMinutes,
+  };
+}
+
 /**
  * Creates seed shifts for the current week for hospitality staff.
  */
@@ -18,7 +56,7 @@ function createSeedShifts(userId: string, hourlyRate: number = 18.50): ShiftReco
     return d.toISOString();
   };
 
-  return [
+  const rawSeeds: ShiftRecord[] = [
     {
       id: 'shift_seed_mon',
       userId,
@@ -102,16 +140,24 @@ function createSeedShifts(userId: string, hourlyRate: number = 18.50): ShiftReco
       notes: 'Weekend catering event.',
     },
   ];
+
+  return rawSeeds.map(normalizeShiftRecord);
 }
 
 async function loadPersistedShifts(): Promise<ShiftRecord[] | null> {
   try {
     const isAvailable = await SecureStore.isAvailableAsync();
+    let json: string | null = null;
+
     if (isAvailable) {
-      const json = await SecureStore.getItemAsync(SHIFTS_STORAGE_KEY);
-      if (json) {
-        return JSON.parse(json);
-      }
+      json = await SecureStore.getItemAsync(SHIFTS_STORAGE_KEY);
+    } else if (isWebBrowser()) {
+      json = window.localStorage.getItem(SHIFTS_STORAGE_KEY);
+    }
+
+    if (json) {
+      const parsed: ShiftRecord[] = JSON.parse(json);
+      return parsed.map(normalizeShiftRecord);
     }
   } catch (err) {
     console.warn('Failed to load persisted shifts:', err);
@@ -122,8 +168,12 @@ async function loadPersistedShifts(): Promise<ShiftRecord[] | null> {
 async function savePersistedShifts(shifts: ShiftRecord[]): Promise<void> {
   try {
     const isAvailable = await SecureStore.isAvailableAsync();
+    const json = JSON.stringify(shifts);
+
     if (isAvailable) {
-      await SecureStore.setItemAsync(SHIFTS_STORAGE_KEY, JSON.stringify(shifts));
+      await SecureStore.setItemAsync(SHIFTS_STORAGE_KEY, json);
+    } else if (isWebBrowser()) {
+      window.localStorage.setItem(SHIFTS_STORAGE_KEY, json);
     }
   } catch (err) {
     console.warn('Failed to persist shifts:', err);
@@ -135,11 +185,32 @@ async function savePersistedShifts(shifts: ShiftRecord[]): Promise<void> {
  */
 let inMemoryShiftsCache: ShiftRecord[] | null = null;
 
+export interface FetchShiftsOptions {
+  weekStart?: string; // YYYY-MM-DD for GET /shifts?weekStart=YYYY-MM-DD
+  hourlyRate?: number;
+}
+
 /**
+ * Simulates GET /shifts?weekStart=YYYY-MM-DD
  * Fetches all shifts for a user, restoring persisted records or generating baseline seeds.
  */
-export async function fetchShiftsApi(userId: string, hourlyRate: number = 18.50): Promise<ShiftRecord[]> {
+export async function fetchShiftsApi(
+  userId: string,
+  optionsOrRate?: FetchShiftsOptions | number
+): Promise<ShiftRecord[]> {
+  // Support error simulation for demonstration and testing of retry UI
+  const isGlobalError = typeof globalThis !== 'undefined' && Boolean((globalThis as any).__simulateShiftApiError);
+  if (simulateApiError || isGlobalError) {
+    throw new Error('Simulated network error: Unable to connect to shift server. Tap Retry to reconnect.');
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 350));
+
+  const options: FetchShiftsOptions = typeof optionsOrRate === 'number'
+    ? { hourlyRate: optionsOrRate }
+    : (optionsOrRate || {});
+
+  const hourlyRate = options.hourlyRate ?? 18.50;
 
   if (!inMemoryShiftsCache) {
     const persisted = await loadPersistedShifts();
@@ -151,13 +222,25 @@ export async function fetchShiftsApi(userId: string, hourlyRate: number = 18.50)
     }
   }
 
-  // Filter for user and sort by scheduled start ascending
-  return [...inMemoryShiftsCache]
-    .filter((s) => s.userId === userId)
+  let result = [...inMemoryShiftsCache].filter((s) => s.userId === userId);
+
+  // If weekStart parameter is provided (e.g. '2026-09-28'), filter shifts in that week
+  if (options.weekStart) {
+    const weekStartTs = new Date(`${options.weekStart}T00:00:00`).getTime();
+    const weekEndTs = weekStartTs + 7 * 24 * 60 * 60 * 1000;
+    result = result.filter((s) => {
+      const shiftTs = new Date(s.scheduledStart).getTime();
+      return shiftTs >= weekStartTs && shiftTs < weekEndTs;
+    });
+  }
+
+  return result
+    .map(normalizeShiftRecord)
     .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
 }
 
 /**
+ * Simulates POST /shifts
  * Creates a new shift after validating start, end, and break times.
  */
 export async function createShiftApi(
@@ -187,7 +270,7 @@ export async function createShiftApi(
     throw new Error('Break duration must be less than the total shift duration.');
   }
 
-  const newShift: ShiftRecord = {
+  const newShift: ShiftRecord = normalizeShiftRecord({
     id: `shift_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     userId,
     role: input.role ?? 'server',
@@ -205,7 +288,7 @@ export async function createShiftApi(
     hourlyRate,
     status: 'scheduled',
     notes: input.notes?.trim() || undefined,
-  };
+  });
 
   if (!inMemoryShiftsCache) {
     inMemoryShiftsCache = (await loadPersistedShifts()) || createSeedShifts(userId, hourlyRate);
@@ -215,6 +298,38 @@ export async function createShiftApi(
   await savePersistedShifts(inMemoryShiftsCache);
 
   return newShift;
+}
+
+/**
+ * Simulates PATCH /shifts/:id
+ * Updates specific fields on an existing shift (e.g. ending shift, updating times, notes).
+ */
+export async function patchShiftApi(shiftId: string, updates: Partial<ShiftRecord>): Promise<ShiftRecord> {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  if (!inMemoryShiftsCache) {
+    inMemoryShiftsCache = await loadPersistedShifts();
+  }
+
+  if (!inMemoryShiftsCache) {
+    throw new Error('No shifts found.');
+  }
+
+  const index = inMemoryShiftsCache.findIndex((s) => s.id === shiftId);
+  if (index === -1) {
+    throw new Error('Shift not found.');
+  }
+
+  const existing = inMemoryShiftsCache[index];
+  const updated: ShiftRecord = normalizeShiftRecord({
+    ...existing,
+    ...updates,
+  });
+
+  inMemoryShiftsCache[index] = updated;
+  await savePersistedShifts(inMemoryShiftsCache);
+
+  return updated;
 }
 
 /**
@@ -251,17 +366,18 @@ export async function startShiftApi(
       throw new Error('Cannot start a shift that has already been completed.');
     }
 
-    shift.actualClockIn = nowIso;
-    shift.status = 'active';
-    await savePersistedShifts(inMemoryShiftsCache);
-    return shift;
+    return patchShiftApi(shiftId, {
+      actualClockIn: nowIso,
+      status: 'active',
+      endTime: null,
+    });
   }
 
   // Create an ad-hoc active shift starting now
   const now = new Date();
   const scheduledEnd = new Date(now.getTime() + 6 * 60 * 60 * 1000); // Default 6 hour shift
 
-  const adHocShift: ShiftRecord = {
+  const adHocShift: ShiftRecord = normalizeShiftRecord({
     id: `shift_active_${Date.now()}`,
     userId,
     role: 'server',
@@ -272,7 +388,7 @@ export async function startShiftApi(
     breaks: [],
     hourlyRate,
     status: 'active',
-  };
+  });
 
   inMemoryShiftsCache.push(adHocShift);
   await savePersistedShifts(inMemoryShiftsCache);
@@ -281,19 +397,14 @@ export async function startShiftApi(
 
 /**
  * Ends an active shift: sets actualClockOut and transitions status to 'completed'.
+ * Directly utilizes patchShiftApi (simulating PATCH /shifts/:id).
  */
 export async function endShiftApi(shiftId: string): Promise<ShiftRecord> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
   if (!inMemoryShiftsCache) {
     inMemoryShiftsCache = await loadPersistedShifts();
   }
 
-  if (!inMemoryShiftsCache) {
-    throw new Error('No shifts found.');
-  }
-
-  const shift = inMemoryShiftsCache.find((s) => s.id === shiftId);
+  const shift = inMemoryShiftsCache?.find((s) => s.id === shiftId);
   if (!shift) {
     throw new Error('Shift not found.');
   }
@@ -302,9 +413,10 @@ export async function endShiftApi(shiftId: string): Promise<ShiftRecord> {
     throw new Error('Cannot end a shift that is not active.');
   }
 
-  shift.actualClockOut = new Date().toISOString();
-  shift.status = 'completed';
-
-  await savePersistedShifts(inMemoryShiftsCache);
-  return shift;
+  const nowIso = new Date().toISOString();
+  return patchShiftApi(shiftId, {
+    actualClockOut: nowIso,
+    status: 'completed',
+    endTime: nowIso,
+  });
 }

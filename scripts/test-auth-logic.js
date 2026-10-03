@@ -11,7 +11,7 @@ async function runTests() {
 
   const MOCK_USER = {
     id: 'usr_hosp_01',
-    name: 'Alex Morgan',
+    name: 'Mohit',
     email: 'staff@shifttrack.test',
     role: 'server',
     hourlyRate: 18.50,
@@ -81,7 +81,7 @@ async function runTests() {
   // Test 5: Token validation
   console.log('[Test 5] Token validation for valid and invalid tokens...');
   const validatedUser = await validateTokenApi(MOCK_TOKEN);
-  assert.strictEqual(validatedUser.name, 'Alex Morgan');
+  assert.strictEqual(validatedUser.name, 'Mohit');
   let tokenRejected = false;
   try {
     await validateTokenApi('invalid-token-abc');

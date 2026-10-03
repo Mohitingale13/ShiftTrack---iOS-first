@@ -52,6 +52,12 @@ export interface ShiftRecord {
   hourlyRate: number;
   status: ShiftStatus;
   notes?: string;
+
+  // Canonical PDF API contract fields
+  date?: string;          // YYYY-MM-DD
+  startTime?: string;     // ISO 8601
+  endTime?: string | null;// ISO 8601 or null when active
+  breakMinutes?: number;  // Break duration in minutes
 }
 
 export interface CreateShiftInput {

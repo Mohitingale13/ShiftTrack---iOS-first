@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -7,61 +8,66 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { borderRadius, colors, layout, spacing } from '../theme';
+import { borderRadius, colors, spacing } from '../theme';
 
 interface InputProps extends TextInputProps {
-  label: string;
-  error?: string | null;
-  isPassword?: boolean;
+  label?: string;
+  error?: string;
+  helperText?: string;
+  rightAction?: React.ReactNode;
 }
 
 export function Input({
   label,
   error,
-  isPassword = false,
-  value,
-  onChangeText,
-  placeholder,
+  helperText,
+  rightAction,
+  secureTextEntry,
+  style,
   ...rest
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const showPasswordToggle = secureTextEntry !== undefined;
+  const actualSecureTextEntry = showPasswordToggle ? !isPasswordVisible : false;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {Boolean(label) && <Text style={styles.label}>{label}</Text>}
       <View
         style={[
           styles.inputWrapper,
-          isFocused && styles.inputFocused,
-          Boolean(error) && styles.inputError,
+          isFocused && styles.inputWrapperFocused,
+          Boolean(error) && styles.inputWrapperError,
         ]}
       >
         <TextInput
-          style={styles.textInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textTertiary}
-          secureTextEntry={isPassword && !showPassword}
+          style={[styles.input, style]}
+          placeholderTextColor={colors.textMuted}
+          secureTextEntry={actualSecureTextEntry}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          autoCorrect={false}
+          selectionColor={colors.primary}
           {...rest}
         />
-        {isPassword && (
+        {showPasswordToggle && (
           <TouchableOpacity
             style={styles.toggleButton}
-            onPress={() => setShowPassword((prev) => !prev)}
+            onPress={() => setIsPasswordVisible((prev) => !prev)}
             accessibilityRole="button"
-            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.toggleText}>{showPassword ? 'Hide' : 'Show'}</Text>
+            <Text style={styles.toggleButtonText}>
+              {isPasswordVisible ? 'Hide' : 'Show'}
+            </Text>
           </TouchableOpacity>
         )}
+        {rightAction}
       </View>
       {Boolean(error) && <Text style={styles.errorText}>{error}</Text>}
+      {Boolean(helperText) && !error && <Text style={styles.helperText}>{helperText}</Text>}
     </View>
   );
 }
@@ -71,50 +77,66 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: spacing.xs + 2,
-    letterSpacing: -0.2,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.2,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     borderWidth: 1,
-    borderColor: colors.hairlineBorder,
-    minHeight: layout.minTouchTarget + 4,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: borderRadius.md,
+    minHeight: 48,
     paddingHorizontal: spacing.md,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        } as any)
+      : {}),
   },
-  inputFocused: {
+  inputWrapperFocused: {
     borderColor: colors.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 0 3px rgba(10, 132, 255, 0.20)',
+        } as any)
+      : {}),
   },
-  inputError: {
+  inputWrapperError: {
     borderColor: colors.danger,
+    backgroundColor: 'rgba(254, 242, 242, 0.85)',
   },
-  textInput: {
+  input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textPrimary,
-    paddingVertical: spacing.sm + 2,
+    minHeight: 44,
   },
   toggleButton: {
     paddingLeft: spacing.sm,
-    paddingVertical: spacing.xs,
     justifyContent: 'center',
-    minWidth: layout.minTouchTarget,
-    alignItems: 'flex-end',
+    minHeight: 44,
   },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
+  toggleButtonText: {
+    fontSize: 13,
     color: colors.primary,
+    fontWeight: '600',
   },
   errorText: {
     fontSize: 12,
     color: colors.danger,
     marginTop: spacing.xs,
-    marginLeft: 2,
+    fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
 });

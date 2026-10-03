@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, GlassCard, Input } from '../../components';
+import { StatusBar } from 'expo-status-bar';
+import { Button, GlassCard, Input, ScreenBackground } from '../../components';
 import { useAuth } from '../../state/AuthContext';
 import { borderRadius, colors, layout, spacing } from '../../theme';
 
@@ -72,103 +73,111 @@ export default function LoginScreen() {
   const isButtonDisabled = isSubmitting || !email.trim() || !password;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <ScreenBackground style={styles.screen}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.headerContainer}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>ShiftTrack</Text>
-            </View>
-            <Text style={styles.title}>Staff Sign In</Text>
-            <Text style={styles.subtitle}>
-              Log in to view and track your scheduled shifts and breaks.
-            </Text>
-          </View>
-
-          <GlassCard style={styles.card}>
-            {Boolean(authError) && (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorBannerText}>{authError}</Text>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header branding */}
+            <View style={styles.headerContainer}>
+              <View style={styles.badge}>
+                <View style={styles.badgeDot} />
+                <Text style={styles.badgeText}>SHIFTTRACK</Text>
               </View>
-            )}
+              <Text style={styles.title}>Staff Sign In</Text>
+              <Text style={styles.subtitle}>
+                Access your scheduled shifts, log break times, and record live hours.
+              </Text>
+            </View>
 
-            <Input
-              label="Email"
-              placeholder="staff@shifttrack.test"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (validationErrors.email) {
-                  setValidationErrors((prev) => ({ ...prev, email: undefined }));
-                }
-                if (authError && clearError) {
-                  clearError();
-                }
-              }}
-              error={validationErrors.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
+            {/* Compact Centered Frosted Glass Card */}
+            <GlassCard variant="elevated" style={styles.card}>
+              {Boolean(authError) && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>{authError}</Text>
+                </View>
+              )}
 
-            <Input
-              label="Password"
-              placeholder="••••••••••••"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (validationErrors.password) {
-                  setValidationErrors((prev) => ({ ...prev, password: undefined }));
-                }
-                if (authError && clearError) {
-                  clearError();
-                }
-              }}
-              error={validationErrors.password}
-              isPassword
-              autoCapitalize="none"
-            />
+              <Input
+                label="Email Address"
+                placeholder="staff@shifttrack.test"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (validationErrors.email) {
+                    setValidationErrors((prev) => ({ ...prev, email: undefined }));
+                  }
+                  if (authError && clearError) {
+                    clearError();
+                  }
+                }}
+                error={validationErrors.email}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
 
-            <Button
-              title="Sign In"
-              onPress={handleLogin}
-              loading={isSubmitting}
-              disabled={isButtonDisabled}
-              style={styles.submitButton}
-            />
+              <Input
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (validationErrors.password) {
+                    setValidationErrors((prev) => ({ ...prev, password: undefined }));
+                  }
+                  if (authError && clearError) {
+                    clearError();
+                  }
+                }}
+                error={validationErrors.password}
+                secureTextEntry
+                autoCapitalize="none"
+              />
 
-            <TouchableOpacity
-              onPress={handleFillDemoCredentials}
-              style={styles.demoFillButton}
-              accessibilityRole="button"
-              accessibilityLabel="Fill demo credentials"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.demoFillText}>Use Staff Demo Credentials</Text>
-            </TouchableOpacity>
-          </GlassCard>
+              <Button
+                title="Sign In"
+                onPress={handleLogin}
+                loading={isSubmitting}
+                disabled={isButtonDisabled}
+                style={styles.submitButton}
+              />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerNote}>
-              Assessment environment • Mock authentication
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <TouchableOpacity
+                onPress={handleFillDemoCredentials}
+                style={styles.demoFillButton}
+                accessibilityRole="button"
+                accessibilityLabel="Auto-fill staff test credentials"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.demoFillText}>Auto-fill Staff Account</Text>
+              </TouchableOpacity>
+            </GlassCard>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerNote}>ShiftTrack Hospitality Management</Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   keyboardContainer: {
     flex: 1,
@@ -184,48 +193,62 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   badge: {
-    backgroundColor: colors.primaryMuted,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.10)',
     borderRadius: borderRadius.pill,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs - 1,
+    paddingHorizontal: spacing.sm + 4,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.25)',
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginRight: spacing.xs + 2,
   },
   badgeText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.3,
+    letterSpacing: 1.2,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     color: colors.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
     marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    maxWidth: 290,
+    maxWidth: 300,
   },
   card: {
     marginBottom: spacing.lg,
+    maxWidth: 420,
+    width: '100%',
+    alignSelf: 'center',
   },
   errorBanner: {
-    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+    backgroundColor: colors.dangerMuted,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 69, 58, 0.25)',
+    borderColor: colors.dangerBorder,
     marginBottom: spacing.md,
   },
   errorBannerText: {
     fontSize: 13,
     color: colors.danger,
     lineHeight: 18,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   submitButton: {
     marginTop: spacing.sm,
@@ -238,16 +261,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   demoFillText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.primary,
+    letterSpacing: 0.2,
   },
   footer: {
     alignItems: 'center',
     marginTop: spacing.sm,
   },
   footerNote: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textTertiary,
+    letterSpacing: 0.3,
   },
 });

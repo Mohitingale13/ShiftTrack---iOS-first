@@ -1,115 +1,106 @@
 # ShiftTrack
 
-A mobile shift-tracking application designed for hospitality staff (servers, bartenders, hosts, and kitchen teams) to manage and track work shifts, breaks, and hourly earnings.
+A mobile shift-tracking application designed for hospitality staff (servers, bartenders, hosts, and kitchen teams) to manage work shifts, breaks, live elapsed hours, and hourly earnings. Built with **React Native**, **TypeScript**, and **Expo** adhering to iOS-first Human Interface Guidelines.
 
-## Current Status: Milestone 3 — Shift Management
+---
 
-This milestone implements the core shift-management workflows, live elapsed-time tracking, and a deterministic Shift Integrity Assistant:
+## 1. Quick Start & Setup
 
-### 1. Weekly Shifts Overview
-- Displays shifts scheduled or completed for the current week (Monday through Sunday).
-- For each shift, displays:
-  - Date and day of week (`formatDate`)
-  - Scheduled time interval (`formatTime`)
-  - Status indicator badge (`SCHEDULED`, `ACTIVE`, `COMPLETED`)
-  - Break duration in minutes
-  - Net working duration deducting breaks (`formatDuration`)
-  - Work location / section
-- Handles loading indicator, empty schedule state with a quick schedule prompt, and an error state with an instant retry action.
+### Prerequisites
+- Node.js >= 18 (Tested on Node.js 22.23.0)
+- npm >= 9
 
-### 2. Create Shift Workflow (`/(app)/create-shift`)
-- Accessible, keyboard-aware form supporting date, start time (24h), end time (24h), break duration, location, and optional notes.
-- Strict input validation:
-  - Validates date and time formats.
-  - Ensures the scheduled end time is strictly after the start time.
-  - Ensures break duration is non-negative and strictly less than the total shift duration.
-  - Prevents duplicate form submissions while a request is in flight.
-  - Displays inline field validation and top-level API error messages.
+### Installation & Run Instructions
+```bash
+# Clone the repository
+git clone https://github.com/Mohitingale13/ShiftTrack---iOS-first.git
+cd ShiftTrack---iOS-first
 
-### 3. Active Shift & Live Elapsed Timer
-- Supports clocking in to start a shift and clocking out to end an active shift.
-- Displays a live elapsed timer (`HH:MM:SS`) for active shifts.
-- **Wall-clock accuracy**: Elapsed time is calculated strictly from persisted ISO timestamps (`actualClockIn`) against `Date.now()`. It does not rely on an incrementing counter, ensuring 100% accuracy when the application is backgrounded, device is locked, or app is restarted.
-- State transitions enforce business rules:
-  - Prevents starting multiple concurrent active shifts.
-  - Prevents ending shifts that are not currently active.
-  - Prevents restarting already completed shifts.
-- Shift records and active statuses persist across app restarts using Expo SecureStore.
+# Install dependencies (SDK-compatible versions)
+npm install
 
-### 4. Shift Integrity Assistant
-- Deterministic, explainable conflict detection engine (`src/services/integrity.ts`):
-  - **Overlap Detection**: Analyzes time intervals across all active and scheduled shifts. When an overlap is detected, displays an alert explaining the exact conflict, the dates, times, and overlapping duration in minutes.
-  - **Unusually Long Shifts**: Emits a caution notice if an active shift has been open for more than 12 hours to alert staff to check if clock-out was missed.
+# Start development server
+npx expo start
 
-## Technology Stack
+# Run specifically in browser preview
+npx expo start --web
 
-- Framework: Expo SDK 57 (57.0.26)
-- Navigation: Expo Router 57.0.24 (File-based routing)
-- Persistence: Expo SecureStore 57.0.4
-- Runtime: React Native 0.86.3, React 19.2.3
-- Language: TypeScript 6.0.3 (Strict mode enabled)
-- Package Manager: npm 11.2.0
-- Node Engine: Node.js 22.23.0
+# Run on iOS physical device (via Expo Go app)
+npx expo start --ios
 
-## Architecture and Project Structure
+# Run on Android device / emulator
+npx expo start --android
+```
+
+### Assessment Credentials
+- **Email:** `staff@shifttrack.test`
+- **Password:** `Password123`
+*(A discrete "Auto-fill Staff Account" button is also provided on the sign-in screen for one-tap testing).*
+
+---
+
+## 2. API Contract & Mock Simulation
+
+The application implements a dedicated in-app mock service layer simulating real-world network latency (300ms–500ms) adhering strictly to the assessment REST contract:
+
+| Operation | Method / Route | Simulated Service Function | Response / Payload Contract |
+|---|---|---|---|
+| **Staff Login** | `POST /auth/login` | `loginApi(credentials)` in [`src/services/auth.ts`](file:///c:/Users/Mohit/Desktop/ShiftTrack/src/services/auth.ts) | `{ "token": "mock-jwt-...", "user": { "id": "usr_hosp_01", "name": "Mohit", "role": "server", "hourlyRate": 18.50 } }` |
+| **Get Weekly Shifts** | `GET /shifts?weekStart=YYYY-MM-DD` | `fetchShiftsApi(userId, { weekStart })` in [`src/services/shifts.ts`](file:///c:/Users/Mohit/Desktop/ShiftTrack/src/services/shifts.ts) | Returns `ShiftRecord[]` matching the week interval with canonical fields: `{ "id": "s1", "date": "2026-09-28", "startTime": "...", "endTime": null, "breakMinutes": 30 }` |
+| **Create Shift** | `POST /shifts` | `createShiftApi(userId, input)` in [`src/services/shifts.ts`](file:///c:/Users/Mohit/Desktop/ShiftTrack/src/services/shifts.ts) | Validates timestamps (end > start, break < duration) and persists new record. |
+| **Update / End Shift** | `PATCH /shifts/:id` | `patchShiftApi(shiftId, updates)` / `endShiftApi(shiftId)` in [`src/services/shifts.ts`](file:///c:/Users/Mohit/Desktop/ShiftTrack/src/services/shifts.ts) | Updates fields (e.g., sets `actualClockOut`, `status: "completed"`, `endTime: ISO`). |
+
+### How to Demonstrate Error State & Retry Action
+To reproduce a network error on demand for demonstrations and evaluations:
+1. Open the browser developer console at `http://localhost:8081`.
+2. Run:
+   ```js
+   window.__simulateShiftApiError = true;
+   ```
+3. Pull to refresh or trigger a reload: The screen will display the global error banner:
+   *"Simulated network error: Unable to connect to shift server. Tap Retry to reconnect."*
+4. In the console, reset the flag:
+   ```js
+   window.__simulateShiftApiError = false;
+   ```
+5. Tap the **"Retry"** button on the error banner: The shifts will instantly reload and the error clears.
+
+---
+
+## 3. Architecture & Persistence Strategy
 
 ```
 ShiftTrack/
-|-- assets/                 # Application icons and splash screens
-|-- scripts/
-|   |-- test-auth-logic.js  # Automated authentication & session test suite
-|   \-- test-shifts-logic.js# Automated shift transitions, timer, & integrity test suite
 |-- src/
 |   |-- app/                # Expo Router screens and layouts
 |   |   |-- _layout.tsx     # Root layout with SafeAreaProvider, AuthProvider, and ShiftProvider
-|   |   |-- index.tsx       # Entry redirector
-|   |   |-- (auth)/         # Authentication flow
-|   |   |   |-- _layout.tsx
-|   |   |   \-- login.tsx   # Frosted-glass staff sign-in screen
-|   |   \-- (app)/          # Authenticated application
-|   |       |-- _layout.tsx
-|   |       |-- index.tsx   # Dashboard: weekly shifts, active timer, integrity alerts
-|   |       \-- create-shift.tsx # Form to record/schedule new shifts
-|   |-- components/         # Reusable UI components
-|   |   |-- ActiveShiftCard.tsx # Live elapsed-time active shift card
-|   |   |-- ShiftItem.tsx       # Weekly shift schedule item card
-|   |   |-- IntegrityBanner.tsx # Shift Integrity Assistant conflict notifications
-|   |   |-- Button.tsx          # Accessible iOS button
-|   |   |-- GlassCard.tsx       # Restrained frosted-glass elevated card
-|   |   |-- Input.tsx           # Accessible text input with label and error state
-|   |   \-- LoadingScreen.tsx   # Splash/session restoration loading indicator
+|   |   |-- (auth)/login.tsx# Frosted-glass staff sign-in screen
+|   |   \-- (app)/          # Authenticated routes
+|   |       |-- index.tsx   # Dashboard: weekly shifts, hero active timer, integrity alerts
+|   |       \-- create-shift.tsx # Modal form to record/schedule new shifts
+|   |-- components/         # Reusable UI components (ActiveShiftCard, ShiftItem, GlassCard, etc.)
 |   |-- services/           # Service layer
-|   |   |-- auth.ts             # Mock authentication API
-|   |   |-- storage.ts          # SecureStore session storage
-|   |   |-- shifts.ts           # Mock shifts API with SecureStore persistence
-|   |   \-- integrity.ts        # Shift Integrity Assistant conflict detector
-|   |-- state/              # Application state providers
-|   |   |-- AuthContext.tsx     # Session management and auth state
-|   |   \-- ShiftContext.tsx    # Shift schedule, active timer, and conflict state
-|   |-- theme/              # iOS frosted-glass tokens, spacing, colors, HIG metrics
-|   |-- types/              # Domain types (ShiftRecord, ShiftConflict, UserProfile)
-|   \-- utils/              # Pure utilities
-|       |-- date.ts             # Date and duration formatters, week range calculations
-|       \-- time.ts             # Live elapsed timer calculations from timestamps
-|-- app.json                # Expo configuration manifest
-|-- package.json            # Dependencies, scripts, and Expo entry
-\-- tsconfig.json           # Strict TypeScript configuration
+|   |   |-- auth.ts         # Authentication API simulation
+|   |   |-- shifts.ts       # Shift management API simulation
+|   |   |-- storage.ts      # Hardware-backed SecureStore & browser preview persistence
+|   |   \-- integrity.ts    # Shift Integrity Assistant conflict detection
+|   |-- state/              # Application state providers (AuthContext, ShiftContext)
+|   |-- theme/              # Apple frosted-glass design tokens (HIG metrics, specular borders)
+|   |-- types/              # TypeScript domain types & canonical API contracts
+|   \-- utils/              # Pure utilities for dates, week boundaries, and timer math
 ```
 
-## Mock API Contracts & Limitations
+### Persistence Logic & Wall-Clock Timer
+- **Native Secure Storage:** On native iOS and Android, authentication tokens, user sessions, and shift data are persisted using hardware-backed **Expo SecureStore** (iOS Keychain / Android Keystore).
+- **Browser Preview Fallback:** In the web browser preview, `storage.ts` and `shifts.ts` detect the web environment and fall back to `window.localStorage` so data survives browser page refreshes.
+- **Wall-Clock Elapsed Timer:** The active shift elapsed time is calculated strictly from the persisted ISO timestamp (`actualClockIn`) against `Date.now()`. It does not rely on an incrementing counter, ensuring 100% accuracy if the app is backgrounded, the device is locked, or the app is killed and reopened.
 
-The application uses an isolated mock service layer (`src/services/shifts.ts` and `src/services/auth.ts`) simulating network latency (300ms–500ms):
-- Authentication verifies the exact assessment credentials:
-  - Email: `staff@shifttrack.test`
-  - Password: `Password123`
-- Shifts are seeded for the current week and stored securely via `expo-secure-store` (`shifttrack_mock_shifts_data`).
-- Changes made during the session (creating shifts, clocking in, clocking out) are persisted locally across application restarts.
-- **Limitation**: The mock service operates entirely client-side. There is no remote backend server or multi-device synchronization.
+---
 
-## Verification and Testing
+## 4. Verification & Testing
 
 ```bash
-# Run full automated test suite (Auth + Shift Management + Integrity Assistant)
+# Run full automated test suite (12 tests: Auth + Shift Logic + Integrity + PDF Contract)
 npm test
 
 # Run authentication unit tests specifically
@@ -118,18 +109,32 @@ npm run test:auth
 # Run shift logic and integrity detector tests specifically
 npm run test:shifts
 
-# Run TypeScript type check
+# Run TypeScript strict type check (0 errors)
 npx tsc --noEmit
 
-# Run Expo dependency diagnostics
+# Run Expo dependency and configuration diagnostics (21/21 passed)
 npx expo-doctor
 
-# Validate Metro production bundling for iOS
+# Validate production iOS bundling
 npx expo export -p ios
+
+# Validate production Web bundling
+npx expo export -p web
 ```
 
-## Platform Support
+---
 
-- Host Environment: Windows 11.
-- Testing on iOS: Supported via Expo Go on physical iOS devices or web preview (`npx expo start --web`). Native iOS Simulator builds require macOS and Xcode.
-- Testing on Android: Supported via Android Studio AVD or connected Android devices.
+## 5. Submission Checklist
+
+- [x] **Repository URL:** `https://github.com/Mohitingale13/ShiftTrack---iOS-first.git`
+- [x] **Branch:** `main`
+- [ ] **Collaborator Access:** If repository is private, invite GitHub user `JeetDas5`.
+- [ ] **5-Minute Loom Video Walkthrough:**
+  1. **Login:** Enter `staff@shifttrack.test` / `Password123` (or auto-fill button). Show invalid password error first.
+  2. **Shifts List:** Review current week schedule, times, breaks, net durations, and ₹18.50/hr rate.
+  3. **Create Shift:** Add a new shift, demonstrating validation (end time after start time).
+  4. **Active Shift & Timer:** Tap "Clock In Now" (or "Start This Shift"). Show the live digital timer.
+  5. **Background / Reopen:** Refresh the browser / background the app and show that elapsed time remains accurate.
+  6. **End Shift:** Tap "Clock Out & End Shift" to complete the shift.
+  7. **Error / Retry Demo:** Execute `window.__simulateShiftApiError = true`, trigger refresh, tap "Retry" after resetting.
+  8. **Architecture:** Briefly explain separation of UI, Services (`shifts.ts`, `auth.ts`), State (`ShiftContext`, `AuthContext`), and persistence.

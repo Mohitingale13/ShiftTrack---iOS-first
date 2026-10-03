@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import {
   ActiveShiftCard,
   Button,
   GlassCard,
   IntegrityBanner,
+  ScreenBackground,
   ShiftItem,
 } from '../../components';
 import { useAuth } from '../../state/AuthContext';
@@ -64,7 +67,7 @@ export default function HomeScreen() {
     try {
       await startShift(shiftId);
     } catch {
-      // Error handled via ShiftContext error state
+      // Handled via ShiftContext error state
     }
   };
 
@@ -73,127 +76,143 @@ export default function HomeScreen() {
     try {
       await endShift(shiftId);
     } catch {
-      // Error handled via ShiftContext error state
+      // Handled via ShiftContext error state
     }
   };
 
   const weekStart = getStartOfWeek();
   const weekEnd = getEndOfWeek();
-  const weekRangeLabel = `${formatShortDate(weekStart.toISOString())} – ${formatShortDate(weekEnd.toISOString())}`;
+  const weekRangeLabel = `${formatShortDate(weekStart.toISOString())} - ${formatShortDate(weekEnd.toISOString())}`;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {/* Staff Header */}
-        <View style={styles.header}>
-          <View style={styles.headerInfo}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>ShiftTrack</Text>
-            </View>
-            <Text style={styles.title}>Hello, {user?.name?.split(' ')[0] ?? 'Staff'}</Text>
-            <Text style={styles.roleSubtext}>
-              {user?.role?.toUpperCase() ?? 'STAFF'} • ${user?.hourlyRate?.toFixed(2) ?? '0.00'}/hr
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            disabled={isLoggingOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out of account"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            {isLoggingOut ? (
-              <ActivityIndicator size="small" color={colors.textSecondary} />
-            ) : (
-              <Text style={styles.signOutText}>Sign Out</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+    <ScreenBackground style={styles.screen}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          {/* Top Profile Header */}
+          <View style={styles.header}>
+            <View style={styles.headerInfo}>
+              <View style={styles.badgeRow}>
+                <View style={styles.sessionBadge}>
+                  <View style={styles.sessionDot} />
+                  <Text style={styles.sessionText}>STAFF PORTAL</Text>
+                </View>
+                <View style={styles.rateBadge}>
+                  <Text style={styles.rateText}>{`${user?.role?.toUpperCase() ?? 'SERVER'} \u2022 \u20B9${user?.hourlyRate?.toFixed(2) ?? '18.50'}/hr`}</Text>
+                </View>
+              </View>
 
-        {/* Global Error Banner */}
-        {Boolean(error) && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.userName}>{user?.name ?? 'Mohit'}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              disabled={isLoggingOut}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out of account"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.signOutText}>Sign Out</Text>
+              )}
             </TouchableOpacity>
           </View>
-        )}
 
-        {/* Live Active Shift & Timer Section */}
-        <ActiveShiftCard
-          activeShift={activeShift}
-          onStartShift={() => handleStartShift()}
-          onEndShift={handleEndShift}
-          isLoading={isActionLoading}
-        />
+          {/* Global Error Banner */}
+          {Boolean(error) && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* Shift Integrity Assistant Conflict Alerts */}
-        <IntegrityBanner conflicts={conflicts} />
-
-        {/* Weekly Shifts Section Header */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Weekly Schedule</Text>
-            <Text style={styles.sectionSubtitle}>{weekRangeLabel}</Text>
-          </View>
-          <Button
-            title="+ Add Shift"
-            variant="secondary"
-            onPress={() => router.push('/(app)/create-shift')}
-            style={styles.addShiftButton}
+          {/* Focal Hero Component: Active Shift & Live Elapsed Timer */}
+          <ActiveShiftCard
+            activeShift={activeShift}
+            onStartShift={() => handleStartShift()}
+            onEndShift={handleEndShift}
+            isLoading={isActionLoading}
           />
-        </View>
 
-        {/* Weekly Shifts Content */}
-        {isLoading && !isRefreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading weekly shifts...</Text>
-          </View>
-        ) : weeklyShifts.length === 0 ? (
-          <GlassCard style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No Shifts This Week</Text>
-            <Text style={styles.emptySubtitle}>
-              You have no scheduled shifts for {weekRangeLabel}. Tap "+ Add Shift" above to record or schedule a shift.
-            </Text>
-            <Button
-              title="Schedule a Shift"
+          {/* Shift Integrity Assistant Conflict Alerts */}
+          <IntegrityBanner conflicts={conflicts} />
+
+          {/* Weekly Schedule Section */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+              <Text style={styles.sectionSubtitle}>{weekRangeLabel}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.addShiftButton}
               onPress={() => router.push('/(app)/create-shift')}
-              style={styles.emptyAction}
-            />
-          </GlassCard>
-        ) : (
-          <View style={styles.shiftsList}>
-            {weeklyShifts.map((shift) => (
-              <ShiftItem
-                key={shift.id}
-                shift={shift}
-                onClockIn={handleStartShift}
-                canClockIn={!activeShift}
-              />
-            ))}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Schedule new shift"
+            >
+              <Text style={styles.addShiftText}>+ Add Shift</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* Weekly Shifts List */}
+          {isLoading && !isRefreshing ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Updating shifts...</Text>
+            </View>
+          ) : weeklyShifts.length === 0 ? (
+            <GlassCard variant="standard" style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No Shifts This Week</Text>
+              <Text style={styles.emptySubtitle}>
+                You have no scheduled shifts for {weekRangeLabel}. Tap "+ Add Shift" above to record or schedule a shift.
+              </Text>
+              <Button
+                title="Schedule a Shift"
+                onPress={() => router.push('/(app)/create-shift')}
+                style={styles.emptyAction}
+              />
+            </GlassCard>
+          ) : (
+            <View style={styles.shiftsList}>
+              {weeklyShifts.map((shift) => (
+                <ShiftItem
+                  key={shift.id}
+                  shift={shift}
+                  onClockIn={handleStartShift}
+                  canClockIn={!activeShift}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: layout.screenPaddingHorizontal,
@@ -209,52 +228,90 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.primaryMuted,
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.xs + 2,
+    marginBottom: spacing.xs + 2,
+  },
+  sessionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.10)',
     borderRadius: borderRadius.pill,
-    paddingVertical: 3,
     paddingHorizontal: spacing.sm + 2,
-    marginBottom: spacing.xs,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.25)',
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
+  sessionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginRight: spacing.xs + 2,
+  },
+  sessionText: {
+    fontSize: 10,
+    fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
   },
-  title: {
-    fontSize: 26,
+  rateBadge: {
+    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderRadius: borderRadius.pill,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+  },
+  rateText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: -0.4,
-  },
-  roleSubtext: {
-    fontSize: 13,
-    fontWeight: '600',
     color: colors.textSecondary,
-    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   signOutButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.fillQuaternary,
+    paddingHorizontal: spacing.md + 4,
+    paddingVertical: spacing.xs + 3,
+    backgroundColor: '#DC2626',
     borderRadius: borderRadius.md,
-    minHeight: layout.minTouchTarget,
+    minHeight: 38,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 4,
+    borderWidth: 0,
+    ...(Platform.OS === 'web'
+      ? ({
+        boxShadow: '0 4px 14px 0 rgba(220, 38, 38, 0.35)',
+      } as any)
+      : {
+        shadowColor: '#DC2626',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+      }),
   },
   signOutText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   errorBanner: {
-    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+    backgroundColor: colors.dangerMuted,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 69, 58, 0.25)',
+    borderColor: colors.dangerBorder,
     marginBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,7 +321,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.danger,
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   retryButton: {
     paddingLeft: spacing.md,
@@ -283,26 +340,38 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.textTertiary,
     marginTop: 2,
+    fontWeight: '500',
   },
   addShiftButton: {
-    minHeight: 38,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: spacing.xs + 2,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addShiftText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.2,
   },
   loadingContainer: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: spacing.sm,
   },
@@ -318,10 +387,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 19,
     marginBottom: spacing.lg,
   },
   emptyAction: {

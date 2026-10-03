@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +12,7 @@ import { borderRadius, colors, layout, spacing } from '../theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   loading?: boolean;
   style?: ViewStyle | ViewStyle[];
 }
@@ -33,6 +34,7 @@ export function Button({
         variant === 'primary' && styles.primaryButton,
         variant === 'secondary' && styles.secondaryButton,
         variant === 'danger' && styles.dangerButton,
+        variant === 'ghost' && styles.ghostButton,
         isActionDisabled && styles.disabledButton,
         style,
       ]}
@@ -52,6 +54,7 @@ export function Button({
             variant === 'primary' && styles.primaryText,
             variant === 'secondary' && styles.secondaryText,
             variant === 'danger' && styles.dangerText,
+            variant === 'ghost' && styles.ghostText,
             isActionDisabled && styles.disabledText,
           ]}
         >
@@ -73,33 +76,53 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 14px 0 rgba(10, 132, 255, 0.35)',
+        } as any)
+      : {}),
   },
   secondaryButton: {
-    backgroundColor: colors.fillQuaternary,
+    backgroundColor: 'rgba(255, 255, 255, 0.70)',
     borderWidth: 1,
-    borderColor: colors.hairlineBorder,
+    borderColor: 'rgba(203, 213, 225, 0.80)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.04)',
+        } as any)
+      : {}),
   },
   dangerButton: {
-    backgroundColor: 'rgba(255, 69, 58, 0.12)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 69, 58, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  ghostButton: {
+    backgroundColor: 'transparent',
   },
   disabledButton: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   baseText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     letterSpacing: -0.2,
   },
   primaryText: {
     color: colors.textInverse,
   },
   secondaryText: {
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   dangerText: {
     color: colors.danger,
+  },
+  ghostText: {
+    color: colors.primary,
   },
   disabledText: {
     opacity: 0.8,

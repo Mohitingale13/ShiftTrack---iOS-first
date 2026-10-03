@@ -9,8 +9,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { Button, GlassCard, Input } from '../../components';
+import { Button, GlassCard, Input, ScreenBackground } from '../../components';
 import { useShifts } from '../../state/ShiftContext';
 import { borderRadius, colors, layout, spacing } from '../../theme';
 
@@ -118,130 +119,139 @@ export default function CreateShiftScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <ScreenBackground>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel and return"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.backButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Add New Shift</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          {Boolean(apiError) && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{apiError}</Text>
-            </View>
-          )}
-
-          <GlassCard style={styles.card}>
-            <Input
-              label="Shift Date (YYYY-MM-DD)"
-              value={dateStr}
-              onChangeText={(val) => {
-                setDateStr(val);
-                if (validationErrors.date) {
-                  setValidationErrors((prev) => ({ ...prev, date: undefined! }));
-                }
-              }}
-              placeholder="2026-10-04"
-              error={validationErrors.date}
-              autoCapitalize="none"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.halfCol}>
-                <Input
-                  label="Start Time (24h)"
-                  value={startTimeStr}
-                  onChangeText={(val) => {
-                    setStartTimeStr(val);
-                    if (validationErrors.startTime) {
-                      setValidationErrors((prev) => ({ ...prev, startTime: undefined! }));
-                    }
-                  }}
-                  placeholder="09:00"
-                  error={validationErrors.startTime}
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View style={styles.halfCol}>
-                <Input
-                  label="End Time (24h)"
-                  value={endTimeStr}
-                  onChangeText={(val) => {
-                    setEndTimeStr(val);
-                    if (validationErrors.endTime) {
-                      setValidationErrors((prev) => ({ ...prev, endTime: undefined! }));
-                    }
-                  }}
-                  placeholder="17:00"
-                  error={validationErrors.endTime}
-                  autoCapitalize="none"
-                />
-              </View>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* iOS Header */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={styles.backButton}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel and return"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.backButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Add Shift</Text>
+              <View style={styles.headerSpacer} />
             </View>
 
-            <Input
-              label="Break Duration (Minutes)"
-              value={breakMinutesStr}
-              onChangeText={(val) => {
-                setBreakMinutesStr(val);
-                if (validationErrors.breakMinutes) {
-                  setValidationErrors((prev) => ({ ...prev, breakMinutes: undefined! }));
-                }
-              }}
-              placeholder="30"
-              keyboardType="number-pad"
-              error={validationErrors.breakMinutes}
-            />
+            {Boolean(apiError) && (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorBannerText}>{apiError}</Text>
+              </View>
+            )}
 
-            <Input
-              label="Service Location / Section"
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g. Main Dining Room, Bar, Patio"
-            />
+            <GlassCard variant="elevated" style={styles.card}>
+              <Text style={styles.sectionHeader}>SHIFT SCHEDULE</Text>
 
-            <Input
-              label="Notes (Optional)"
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="e.g. Private event, lunch rush"
-            />
+              <Input
+                label="Date (YYYY-MM-DD)"
+                value={dateStr}
+                onChangeText={(val) => {
+                  setDateStr(val);
+                  if (validationErrors.date) {
+                    setValidationErrors((prev) => ({ ...prev, date: undefined! }));
+                  }
+                }}
+                placeholder="2026-10-04"
+                error={validationErrors.date}
+                autoCapitalize="none"
+              />
 
-            <Button
-              title="Create Shift"
-              onPress={handleCreate}
-              loading={isActionLoading}
-              disabled={isActionLoading}
-              style={styles.submitButton}
-            />
-          </GlassCard>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <View style={styles.row}>
+                <View style={styles.halfCol}>
+                  <Input
+                    label="Start Time (24h)"
+                    value={startTimeStr}
+                    onChangeText={(val) => {
+                      setStartTimeStr(val);
+                      if (validationErrors.startTime) {
+                        setValidationErrors((prev) => ({ ...prev, startTime: undefined! }));
+                      }
+                    }}
+                    placeholder="09:00"
+                    error={validationErrors.startTime}
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.halfCol}>
+                  <Input
+                    label="End Time (24h)"
+                    value={endTimeStr}
+                    onChangeText={(val) => {
+                      setEndTimeStr(val);
+                      if (validationErrors.endTime) {
+                        setValidationErrors((prev) => ({ ...prev, endTime: undefined! }));
+                      }
+                    }}
+                    placeholder="17:00"
+                    error={validationErrors.endTime}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <Input
+                label="Break Duration (Minutes)"
+                value={breakMinutesStr}
+                onChangeText={(val) => {
+                  setBreakMinutesStr(val);
+                  if (validationErrors.breakMinutes) {
+                    setValidationErrors((prev) => ({ ...prev, breakMinutes: undefined! }));
+                  }
+                }}
+                placeholder="30"
+                keyboardType="number-pad"
+                error={validationErrors.breakMinutes}
+              />
+
+              <View style={styles.divider} />
+              <Text style={styles.sectionHeader}>LOCATION & NOTES</Text>
+
+              <Input
+                label="Service Location / Section"
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g. Main Dining Room, Bar, Patio"
+              />
+
+              <Input
+                label="Notes (Optional)"
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="e.g. Private event, lunch rush"
+              />
+
+              <Button
+                title="Create Shift"
+                onPress={handleCreate}
+                loading={isActionLoading}
+                disabled={isActionLoading}
+                style={styles.submitButton}
+              />
+            </GlassCard>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   keyboardContainer: {
     flex: 1,
@@ -256,6 +266,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.lg,
+    paddingTop: spacing.xs,
   },
   backButton: {
     minHeight: layout.minTouchTarget,
@@ -265,17 +276,31 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
+    letterSpacing: -0.2,
   },
   headerSpacer: {
     width: 50,
   },
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    color: colors.textTertiary,
+    marginBottom: spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.separator,
+    marginVertical: spacing.md,
+  },
   card: {
+    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   row: {
@@ -286,20 +311,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   errorBanner: {
-    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+    backgroundColor: colors.dangerMuted,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 69, 58, 0.25)',
+    borderColor: colors.dangerBorder,
     marginBottom: spacing.md,
   },
   errorBannerText: {
     fontSize: 13,
     color: colors.danger,
     lineHeight: 18,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   submitButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
 });

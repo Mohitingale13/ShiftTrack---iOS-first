@@ -10,7 +10,7 @@ const MOCK_CREDENTIALS = {
 
 const MOCK_USER: UserProfile = {
   id: 'usr_hosp_01',
-  name: 'Alex Morgan',
+  name: 'Mohit',
   email: 'staff@shifttrack.test',
   role: 'server',
   hourlyRate: 18.50,

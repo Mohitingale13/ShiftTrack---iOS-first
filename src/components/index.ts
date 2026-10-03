@@ -5,3 +5,4 @@ export * from './LoadingScreen';
 export * from './ActiveShiftCard';
 export * from './ShiftItem';
 export * from './IntegrityBanner';
+export * from './ScreenBackground';

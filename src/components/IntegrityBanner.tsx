@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ShiftConflict } from '../types';
 import { borderRadius, colors, spacing } from '../theme';
 
@@ -25,12 +25,12 @@ export function IntegrityBanner({ conflicts }: IntegrityBannerProps) {
         activeOpacity={0.7}
       >
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>INTEGRITY ASSISTANT</Text>
+          <Text style={styles.badgeText}>INTEGRITY</Text>
         </View>
         <Text style={styles.title}>
-          {conflicts.length} {conflicts.length === 1 ? 'Notice' : 'Notices'} Detected
+          {conflicts.length} Schedule {conflicts.length === 1 ? 'Notice' : 'Notices'}
         </Text>
-        <Text style={styles.toggleText}>{isExpanded ? 'Hide' : 'View'}</Text>
+        <Text style={styles.toggleText}>{isExpanded ? 'Collapse' : 'Details'}</Text>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -39,7 +39,7 @@ export function IntegrityBanner({ conflicts }: IntegrityBannerProps) {
             <View key={conflict.id} style={styles.item}>
               <View style={[styles.indicator, styles.overlapIndicator]} />
               <View style={styles.itemTextContainer}>
-                <Text style={styles.itemTitle}>Schedule Overlap Detected</Text>
+                <Text style={styles.itemTitle}>Shift Overlap</Text>
                 <Text style={styles.itemMessage}>{conflict.message}</Text>
               </View>
             </View>
@@ -49,7 +49,7 @@ export function IntegrityBanner({ conflicts }: IntegrityBannerProps) {
             <View key={conflict.id} style={styles.item}>
               <View style={[styles.indicator, styles.cautionIndicator]} />
               <View style={styles.itemTextContainer}>
-                <Text style={styles.itemTitle}>Shift Duration Caution</Text>
+                <Text style={styles.itemTitle}>Duration Caution</Text>
                 <Text style={styles.itemMessage}>{conflict.message}</Text>
               </View>
             </View>
@@ -62,35 +62,45 @@ export function IntegrityBanner({ conflicts }: IntegrityBannerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFBEA',
+    backgroundColor: 'rgba(254, 243, 199, 0.85)',
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 159, 10, 0.35)',
+    borderColor: 'rgba(245, 158, 11, 0.40)',
     marginBottom: spacing.lg,
     overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 16px 0 rgba(245, 158, 11, 0.10)',
+        } as any)
+      : {}),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
   },
   badge: {
-    backgroundColor: 'rgba(255, 159, 10, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
   },
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#B25E00',
-    letterSpacing: 0.5,
+    color: '#B45309',
+    letterSpacing: 0.6,
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#804400',
+    color: '#92400E',
     flex: 1,
   },
   toggleText: {
@@ -102,7 +112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 159, 10, 0.15)',
+    borderTopColor: 'rgba(245, 158, 11, 0.20)',
   },
   item: {
     flexDirection: 'row',
@@ -113,7 +123,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginTop: 6,
+    marginTop: 5,
     marginRight: spacing.sm,
   },
   overlapIndicator: {
@@ -126,14 +136,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#5C3100',
+    color: '#92400E',
     marginBottom: 2,
   },
   itemMessage: {
     fontSize: 12,
-    color: '#703C00',
+    color: '#78350F',
     lineHeight: 17,
   },
 });
