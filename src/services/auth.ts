@@ -1,3 +1,4 @@
+import * as Network from 'expo-network';
 import { AuthResponse, LoginCredentials, UserProfile } from '../types';
 
 /**
@@ -13,7 +14,7 @@ const MOCK_USER: UserProfile = {
   name: 'Mohit',
   email: 'staff@shifttrack.test',
   role: 'server',
-  hourlyRate: 18.50,
+  hourlyRate: 30,
 };
 
 const MOCK_TOKEN = 'mock-jwt-shifttrack-staff-token-2026';
@@ -23,7 +24,24 @@ const MOCK_TOKEN = 'mock-jwt-shifttrack-staff-token-2026';
  * Validates credentials and returns an authentication token and user profile.
  */
 export async function loginApi(credentials: LoginCredentials): Promise<AuthResponse> {
-  // Simulate network latency (500ms)
+  // Reliable Network Check
+  try {
+    const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+    if (isWeb) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('Network offline');
+      }
+    } else {
+      const networkState = await Network.getNetworkStateAsync();
+      if (networkState.isConnected === false) {
+        throw new Error('Network offline');
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message === 'Network offline') {
+      throw new Error('Network offline: No internet connection. Tap Retry to reconnect.');
+    }
+  }  // Simulate network latency (500ms)
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const normalizedEmail = credentials.email.trim().toLowerCase();

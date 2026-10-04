@@ -3,9 +3,9 @@
  * 
  * Apple iOS Light Frosted-Glass Visual Language:
  * - Crisp white canvas (#F8FAFC / #FFFFFF) with moving sapphire/cyan ambient spheres
- * - Translucent white glass surfaces (rgba(255,255,255,0.72 - 0.85)) with authentic blur
- * - Specular crisp hairline borders (rgba(255,255,255,0.85))
- * - High-contrast slate typography (#0F172A, #475569) meeting WCAG AA
+ * - Translucent white glass surfaces with authentic blur on iOS/Web and clean frosted surface on Android
+ * - Specular crisp hairline borders (rgba(255,255,255,0.90))
+ * - High-contrast slate typography (#0F172A, #334155, #64748B) meeting WCAG AA
  * - Standard iOS touch targets (minimum 44x44pt)
  */
 
@@ -46,14 +46,14 @@ export const colors = {
   glassBorderFocus: 'rgba(10, 132, 255, 0.55)',
 
   // Inputs
-  inputBackground: 'rgba(255, 255, 255, 0.75)',
-  inputBorder: 'rgba(203, 213, 225, 0.75)',
+  inputBackground: 'rgba(255, 255, 255, 0.85)',
+  inputBorder: 'rgba(203, 213, 225, 0.85)',
 
-  // Typography (Dark Slate on Light Glass)
+  // Typography (Dark Slate on Light Glass, strict WCAG AA compliant)
   textPrimary: '#0F172A',
-  textSecondary: '#475569',
+  textSecondary: '#334155',
   textTertiary: '#64748B',
-  textMuted: '#94A3B8',
+  textMuted: '#64748B',
   textInverse: '#FFFFFF',
 
   // Separators & Fills
@@ -82,24 +82,24 @@ export const borderRadius = {
 export const shadows = {
   glass: {
     shadowColor: '#1E293B',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 4,
+    shadowRadius: 20,
+    elevation: 3,
   },
   card: {
     shadowColor: '#1E293B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
   hero: {
     shadowColor: '#0A84FF',
-    shadowOffset: { width: 0, height: 12 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 6,
+    shadowRadius: 24,
+    elevation: 4,
   },
 };
 

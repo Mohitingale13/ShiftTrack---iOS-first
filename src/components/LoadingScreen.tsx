@@ -8,7 +8,7 @@ export function LoadingScreen() {
     <ScreenBackground style={styles.container}>
       <View style={styles.card}>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>SHIFTTRACK</Text>
+          <Text style={styles.badgeText}>SHIFT TRACK</Text>
         </View>
         <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
         <Text style={styles.text}>Restoring session...</Text>
@@ -42,18 +42,18 @@ const styles = StyleSheet.create({
       : {}),
   },
   badge: {
-    backgroundColor: colors.primaryMuted,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: borderRadius.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(10, 132, 255, 0.25)',
+    borderColor: 'rgba(203, 213, 225, 0.85)',
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: colors.primary,
+    color: '#0F172A',
     letterSpacing: 0.8,
   },
   spinner: {

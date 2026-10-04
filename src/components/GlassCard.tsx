@@ -31,11 +31,12 @@ export function GlassCard({
       {...rest}
     >
       {/* On iOS use native UIVisualEffectView BlurView with translucent tint */}
-      {Platform.OS === 'ios' && (
+      {Platform.OS !== 'web' && (
         <BlurView
-          tint="default"
-          intensity={isElevated ? 70 : intensity}
-          style={StyleSheet.absoluteFill}
+          tint="light"
+          experimentalBlurMethod="dimezisBlurView"
+          intensity={isElevated ? 100 : 85}
+          style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.xl }]}
         />
       )}
       <View style={styles.innerContent}>{children}</View>
@@ -48,8 +49,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)',
     ...shadows.glass,
     ...(Platform.OS === 'web'
       ? ({
@@ -61,8 +62,8 @@ const styles = StyleSheet.create({
       : {}),
   },
   elevatedContainer: {
-    borderColor: 'rgba(255, 255, 255, 0.95)',
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    borderColor: '#FFFFFF',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.25)',
     ...(Platform.OS === 'web'
       ? ({
           backdropFilter: 'blur(28px) saturate(200%)',
@@ -73,8 +74,8 @@ const styles = StyleSheet.create({
       : {}),
   },
   subtleContainer: {
-    borderColor: 'rgba(255, 255, 255, 0.65)',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
     ...(Platform.OS === 'web'
       ? ({
           backdropFilter: 'blur(16px) saturate(180%)',

@@ -50,7 +50,7 @@ export function Input({
       >
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textTertiary}
           secureTextEntry={actualSecureTextEntry}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -83,31 +83,35 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    letterSpacing: 0.2,
+    marginBottom: spacing.xs + 2,
+    letterSpacing: -0.1,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor:
+      Platform.OS === 'android'
+        ? 'rgba(255, 255, 255, 0.95)'
+        : 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(203, 213, 225, 0.85)',
     borderRadius: borderRadius.md,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.md,
     ...(Platform.OS === 'web'
       ? ({
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.03)',
         } as any)
       : {}),
   },
   inputWrapperFocused: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#FFFFFF',
     ...(Platform.OS === 'web'
       ? ({
           boxShadow: '0 0 0 3px rgba(10, 132, 255, 0.20)',
@@ -116,29 +120,30 @@ const styles = StyleSheet.create({
   },
   inputWrapperError: {
     borderColor: colors.danger,
-    backgroundColor: 'rgba(254, 242, 242, 0.85)',
+    backgroundColor: 'rgba(254, 242, 242, 0.95)',
   },
   input: {
     flex: 1,
     fontSize: 15,
     color: colors.textPrimary,
-    minHeight: 44,
+    minHeight: 46,
+    fontWeight: '500',
   },
   toggleButton: {
     paddingLeft: spacing.sm,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 46,
   },
   toggleButtonText: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   errorText: {
     fontSize: 12,
     color: colors.danger,
     marginTop: spacing.xs,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   helperText: {
     fontSize: 12,

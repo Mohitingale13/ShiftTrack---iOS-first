@@ -14,7 +14,7 @@ async function runTests() {
     name: 'Mohit',
     email: 'staff@shifttrack.test',
     role: 'server',
-    hourlyRate: 18.50,
+    hourlyRate: 30,
   };
 
   const MOCK_TOKEN = 'mock-jwt-shifttrack-staff-token-2026';

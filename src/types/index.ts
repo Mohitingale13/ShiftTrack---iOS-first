@@ -29,7 +29,7 @@ export interface UserSession {
   isLoading: boolean;
 }
 
-export type ShiftStatus = 'scheduled' | 'active' | 'break' | 'completed' | 'cancelled';
+export type ShiftStatus = 'scheduled' | 'active' | 'break' | 'completed' | 'cancelled' | 'missed';
 
 export interface ShiftBreak {
   id: string;

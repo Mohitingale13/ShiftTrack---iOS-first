@@ -96,7 +96,7 @@ export default function LoginScreen() {
             <View style={styles.headerContainer}>
               <View style={styles.badge}>
                 <View style={styles.badgeDot} />
-                <Text style={styles.badgeText}>SHIFTTRACK</Text>
+                <Text style={styles.badgeText}>SHIFT TRACK</Text>
               </View>
               <Text style={styles.title}>Staff Sign In</Text>
               <Text style={styles.subtitle}>
@@ -202,25 +202,34 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 132, 255, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: borderRadius.pill,
-    paddingVertical: spacing.xs - 1,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm + 4,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(10, 132, 255, 0.25)',
+    borderColor: 'rgba(203, 213, 225, 0.85)',
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' } as any)
+      : {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 1,
+        }),
   },
   badgeDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.primary,
+    backgroundColor: '#7C3AED',
     marginRight: spacing.xs + 2,
   },
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: colors.primary,
+    color: '#0F172A',
     letterSpacing: 1.2,
   },
   title: {

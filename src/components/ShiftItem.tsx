@@ -1,17 +1,20 @@
-import React from 'react';
+﻿import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { ShiftRecord } from '../types';
 import { calculateNetDurationMinutes, formatDuration, formatTime } from '../utils/date';
-import { borderRadius, colors, spacing } from '../theme';
+import { calculateEarnings, formatCurrency } from '../utils/earnings';
+import { borderRadius, colors, shadows, spacing } from '../theme';
 import { hapticFeedback } from '../utils/haptics';
 
 interface ShiftItemProps {
   shift: ShiftRecord;
   onClockIn?: (shiftId: string) => void;
   canClockIn?: boolean;
+  onLongPress?: (shift: ShiftRecord) => void;
 }
 
-export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemProps) {
+export function ShiftItem({ shift, onClockIn, canClockIn = false, onLongPress }: ShiftItemProps) {
   const breakDurationMinutes = shift.breaks.reduce((acc, b) => acc + (b.durationMinutes || 0), 0);
 
   const startIso = shift.actualClockIn || shift.scheduledStart;
@@ -21,6 +24,7 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
   const isCompleted = shift.status === 'completed';
   const isActive = shift.status === 'active';
   const isScheduled = shift.status === 'scheduled';
+  const isMissed = shift.status === 'missed';
 
   const dateObj = new Date(shift.scheduledStart);
   const weekday = dateObj.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
@@ -32,7 +36,20 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
   };
 
   return (
-    <View style={[styles.container, isActive && styles.activeContainer]}>
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onLongPress={() => {
+        if (onLongPress) {
+          hapticFeedback.warning();
+          onLongPress(shift);
+        }
+      }}
+      delayLongPress={500}
+      style={[styles.container, isActive && styles.activeContainer]}
+    >
+      {Platform.OS !== 'web' && (
+        <BlurView intensity={85} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.lg }]} />
+      )}
       <View style={styles.mainRow}>
         {/* Left: Compact Date Badge */}
         <View style={[styles.dateBadge, isActive && styles.activeDateBadge]}>
@@ -65,6 +82,7 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
               isActive && styles.activePill,
               isCompleted && styles.completedPill,
               isScheduled && styles.scheduledPill,
+              isMissed && styles.missedPill,
             ]}
           >
             {isActive && <View style={styles.activeDot} />}
@@ -74,6 +92,7 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
                 isActive && styles.activeStatusText,
                 isCompleted && styles.completedStatusText,
                 isScheduled && styles.scheduledStatusText,
+                isMissed && styles.missedStatusText,
               ]}
             >
               {shift.status.toUpperCase()}
@@ -81,6 +100,11 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
           </View>
 
           <Text style={styles.durationText}>{formatDuration(netMinutes)}</Text>
+          {isCompleted && (
+            <Text style={styles.earningsText}>
+              {typeof shift.hourlyRate === 'number' && shift.hourlyRate >= 0 ? formatCurrency(calculateEarnings(shift)) : 'Set hourly rate'}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -100,29 +124,31 @@ export function ShiftItem({ shift, onClockIn, canClockIn = false }: ShiftItemPro
           <Text style={styles.clockInActionText}>Start This Shift</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.50)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.12)',
     borderRadius: borderRadius.lg,
+    overflow: 'hidden',
     padding: spacing.md,
     marginBottom: spacing.sm + 2,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...shadows.card,
     ...(Platform.OS === 'web'
       ? ({
-          backdropFilter: 'blur(20px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(190%)',
-          boxShadow: '0 4px 20px 0 rgba(31, 38, 135, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 4px 16px 0 rgba(31, 38, 135, 0.06)',
         } as any)
       : {}),
   },
   activeContainer: {
-    borderColor: 'rgba(16, 185, 129, 0.45)',
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderColor: 'rgba(52, 199, 89, 0.40)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.25)',
   },
   mainRow: {
     flexDirection: 'row',
@@ -132,47 +158,44 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.04)',
     borderRadius: borderRadius.md,
     paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    justifyContent: 'center',
     minWidth: 54,
-    borderWidth: 1.5,
-    borderColor: 'rgba(15, 23, 42, 0.06)',
     marginRight: spacing.md,
   },
   activeDateBadge: {
-    backgroundColor: colors.successMuted,
-    borderColor: colors.successBorder,
+    backgroundColor: 'rgba(52, 199, 89, 0.12)',
   },
   dateWeekday: {
     fontSize: 10,
     fontWeight: '800',
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     letterSpacing: 0.5,
   },
   dateDay: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginTop: 2,
+    marginTop: 1,
   },
   activeDateText: {
     color: colors.success,
   },
   detailsCol: {
     flex: 1,
-    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   timeText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
     letterSpacing: -0.2,
+    marginBottom: 3,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
+    flexWrap: 'wrap',
   },
   locationText: {
     fontSize: 12,
@@ -180,52 +203,46 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dotSeparator: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.textTertiary,
-    marginHorizontal: spacing.xs,
+    marginHorizontal: 5,
   },
   breakText: {
     fontSize: 12,
     color: colors.warning,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   statusCol: {
     alignItems: 'flex-end',
-    justifyContent: 'center',
-    marginLeft: spacing.sm,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.pill,
-    paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
+    paddingHorizontal: spacing.xs + 4,
+    borderRadius: borderRadius.pill,
     marginBottom: 4,
-    borderWidth: 1.5,
   },
   activePill: {
-    backgroundColor: colors.successMuted,
-    borderColor: colors.successBorder,
+    backgroundColor: 'rgba(52, 199, 89, 0.12)',
   },
   completedPill: {
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-    borderColor: 'rgba(148, 163, 184, 0.30)',
+    backgroundColor: 'rgba(100, 116, 139, 0.10)',
   },
   scheduledPill: {
-    backgroundColor: colors.primaryMuted,
-    borderColor: 'rgba(10, 132, 255, 0.25)',
+    backgroundColor: 'rgba(10, 132, 255, 0.10)',
   },
   activeDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.success,
     marginRight: 4,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
   activeStatusText: {
     color: colors.success,
@@ -236,27 +253,45 @@ const styles = StyleSheet.create({
   scheduledStatusText: {
     color: colors.primary,
   },
+
+  missedPill: {
+    backgroundColor: 'rgba(255, 59, 48, 0.12)',
+  },
+  missedStatusText: {
+    color: '#FF3B30',
+  },
+  earningsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.success,
+    marginTop: 2,
+  },
+
   durationText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
   notesText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     fontStyle: 'italic',
     marginTop: spacing.xs + 2,
-    paddingLeft: 66,
-  },
-  clockInAction: {
-    marginTop: spacing.sm,
     paddingTop: spacing.xs + 2,
     borderTopWidth: 1,
     borderTopColor: colors.separator,
+  },
+  clockInAction: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
+    borderRadius: borderRadius.md,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.20)',
   },
   clockInActionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
   },

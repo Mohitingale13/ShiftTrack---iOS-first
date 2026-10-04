@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+﻿import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { CreateShiftInput, ShiftConflict, ShiftRecord } from '../types';
-import { createShiftApi, endShiftApi, fetchShiftsApi, startShiftApi } from '../services/shifts';
+import {
+  createShiftApi,
+  deleteShiftApi,
+  endShiftApi,
+  fetchShiftsApi,
+  resetShiftsToSeedApi,
+  startShiftApi,
+} from '../services/shifts';
 import { detectShiftConflicts } from '../services/integrity';
 import { isDateInCurrentWeek } from '../utils/date';
 import { useAuth } from './AuthContext';
@@ -17,6 +24,8 @@ interface ShiftContextValue {
   createShift: (input: CreateShiftInput) => Promise<ShiftRecord>;
   startShift: (shiftId?: string) => Promise<ShiftRecord>;
   endShift: (shiftId: string) => Promise<ShiftRecord>;
+  deleteShift: (shiftId: string) => Promise<void>;
+  resetShifts: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -129,6 +138,36 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteShift = async (shiftId: string): Promise<void> => {
+    setIsActionLoading(true);
+    setError(null);
+    try {
+      await deleteShiftApi(shiftId);
+      setShifts((prev) => prev.filter((s) => s.id !== shiftId));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete shift.';
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const resetShifts = async (): Promise<void> => {
+    if (!user) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const seeds = await resetShiftsToSeedApi(user.id, user.hourlyRate);
+      setShifts(seeds);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to reset shifts.';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearError = () => setError(null);
 
   const value = useMemo(
@@ -144,6 +183,8 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
       createShift,
       startShift,
       endShift,
+      deleteShift,
+      resetShifts,
       clearError,
     }),
     [shifts, weeklyShifts, activeShift, isLoading, isActionLoading, error, conflicts]

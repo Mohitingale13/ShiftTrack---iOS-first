@@ -7,6 +7,15 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
       }}
-    />
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen 
+        name="create-shift" 
+        options={{ 
+          presentation: 'modal',
+          headerShown: false,
+        }} 
+      />
+    </Stack>
   );
 }

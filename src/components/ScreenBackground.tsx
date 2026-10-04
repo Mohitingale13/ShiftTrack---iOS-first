@@ -12,45 +12,35 @@ export function ScreenBackground({ children, style, ...rest }: ScreenBackgroundP
       {/* Clean Apple White Canvas Base */}
       <View style={[StyleSheet.absoluteFill, styles.whiteCanvas]} />
 
-      {/* Static Vibrant Gradient Elements for high-definition Glassmorphism */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {/* 1. Top-Right Corner Cut Sphere */}
+      {/* Static Vibrant Ambient Elements for authentic Glassmorphism Refraction */}
+      <View pointerEvents="none" style={styles.ambientLayer}>
+        {/* 1. Top-Right Corner Cut Sphere (Royal Violet to Radiant Fuchsia) */}
         <View style={[styles.sphereBase, styles.topRightCorner]}>
           <LinearGradient
-            colors={['#1D4ED8', '#60A5FA']}
+            colors={['#7C3AED', '#EC4899']}
             style={StyleSheet.absoluteFill}
             start={{ x: 0.1, y: 0.1 }}
             end={{ x: 0.9, y: 0.9 }}
           />
         </View>
 
-        {/* 2. Bottom-Left Corner Cut Sphere */}
+        {/* 2. Bottom-Left Corner Cut Sphere (Emerald Teal to Electric Cyan) */}
         <View style={[styles.sphereBase, styles.bottomLeftCorner]}>
           <LinearGradient
-            colors={['#0284C7', '#38BDF8']}
+            colors={['#0D9488', '#06B6D4']}
             style={StyleSheet.absoluteFill}
             start={{ x: 0.1, y: 0.1 }}
             end={{ x: 0.9, y: 0.9 }}
           />
         </View>
 
-        {/* 3. Deep Purple/Indigo Orb (cuts deeply under the left side of the card) */}
-        <View style={[styles.sphereBase, styles.cardLeftAccent]}>
+        {/* 3. Subtle Ambient Refraction Orb (Warm Sunset Amber to Coral glow kissing card perimeter) */}
+        <View style={[styles.sphereBase, styles.perimeterRefraction]}>
           <LinearGradient
-            colors={['#4F46E5', '#818CF8']}
+            colors={['#F59E0B', '#FB7185']}
             style={StyleSheet.absoluteFill}
             start={{ x: 0.1, y: 0.1 }}
             end={{ x: 0.9, y: 0.9 }}
-          />
-        </View>
-
-        {/* 4. Electric Sky Blue Orb (cuts deeply under the right side of the card) */}
-        <View style={[styles.sphereBase, styles.cardRightAccent]}>
-          <LinearGradient
-            colors={['#0284C7', '#60A5FA']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0.2, y: 0.2 }}
-            end={{ x: 0.8, y: 0.8 }}
           />
         </View>
       </View>
@@ -70,54 +60,51 @@ const styles = StyleSheet.create({
   whiteCanvas: {
     backgroundColor: '#F8FAFC',
   },
+  ambientLayer: {
+    ...StyleSheet.absoluteFill,
+    // Strictly preserve background Z-index on Android
+    elevation: 0,
+    zIndex: 0,
+  },
   sphereBase: {
     position: 'absolute',
     borderRadius: 9999,
     overflow: 'hidden',
+    // Zero elevation on Android ensures background shapes NEVER float above content
+    elevation: 0,
     ...(Platform.OS === 'web'
       ? ({
-          boxShadow: '0 20px 50px rgba(37, 99, 235, 0.22)',
+          boxShadow: '0 20px 50px rgba(37, 99, 235, 0.20)',
         } as any)
       : {
           shadowColor: '#2563EB',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.25,
-          shadowRadius: 20,
-          elevation: 6,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.18,
+          shadowRadius: 18,
         }),
   },
-  // Corner 1: Cut off by top and right edges
+  // Corner 1: Cut off by top and right screen edges
   topRightCorner: {
-    top: -100,
+    top: -130,
     right: -90,
+    width: 320,
+    height: 320,
+    opacity: 0.78,
+  },
+  // Corner 2: Cut off by bottom and left screen edges
+  bottomLeftCorner: {
+    bottom: -90,
+    left: -70,
     width: 350,
     height: 350,
-    opacity: 0.90,
+    opacity: 0.75,
   },
-  // Corner 2: Cut off by bottom and left edges
-  bottomLeftCorner: {
-    bottom: -110,
+  // Refraction Orb: Positioned at left edge to cast a gentle chromatic glow under the card rim
+  perimeterRefraction: {
+    top: '38%',
     left: -80,
-    width: 370,
-    height: 370,
-    opacity: 0.85,
-  },
-  // Slices deeply behind the left of the card
-  cardLeftAccent: {
-    top: '25%',
-    left: '50%',
-    marginLeft: -280,
-    width: 360,
-    height: 360,
-    opacity: 0.90,
-  },
-  // Slices deeply behind the right of the card
-  cardRightAccent: {
-    top: '46%',
-    left: '50%',
-    marginLeft: 40,
-    width: 300,
-    height: 300,
-    opacity: 0.85,
+    width: 280,
+    height: 280,
+    opacity: Platform.OS === 'android' ? 0.25 : 0.32,
   },
 });

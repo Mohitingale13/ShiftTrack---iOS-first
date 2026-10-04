@@ -299,7 +299,73 @@ async function runTests() {
   assert.strictEqual(mockErrorTriggered, true);
   console.log('  -> PASS: PDF contract fields, PATCH semantics, and error trigger verified.');
 
-  console.log('\nAll 6 Shift Management & Integrity test suites passed successfully!');
+  // 7. Missed Shift Detection
+  console.log('[Test 7] Missed shift detection...');
+  const nowTs = Date.now();
+  const pastShift = { status: 'scheduled', scheduledEnd: new Date(nowTs - 3600000).toISOString() };
+  const futureShift = { status: 'scheduled', scheduledEnd: new Date(nowTs + 3600000).toISOString() };
+  const pastActiveShift = { status: 'active', scheduledEnd: new Date(nowTs - 3600000).toISOString() };
+  const pastCompletedShift = { status: 'completed', scheduledEnd: new Date(nowTs - 3600000).toISOString() };
+  const missingTimeShift = { status: 'scheduled', scheduledEnd: 'invalid-date' };
+  
+  function evaluateMissed(shift) {
+    if (shift.status === 'scheduled') {
+      const endTs = new Date(shift.scheduledEnd).getTime();
+      if (!isNaN(endTs) && nowTs >= endTs) {
+        return { ...shift, status: 'missed' };
+      }
+    }
+    return shift;
+  }
+
+  assert.strictEqual(evaluateMissed(pastShift).status, 'missed');
+  assert.strictEqual(evaluateMissed(futureShift).status, 'scheduled');
+  assert.strictEqual(evaluateMissed(pastActiveShift).status, 'active');
+  assert.strictEqual(evaluateMissed(pastCompletedShift).status, 'completed');
+  assert.strictEqual(evaluateMissed(missingTimeShift).status, 'scheduled');
+  console.log('  -> PASS: Missed shift logic accurately identifies past scheduled shifts.');
+
+  // 8. Per-Shift Earnings Calculation
+  console.log('[Test 8] Per-shift earnings calculation...');
+  
+  function calculateNetDurationMinutesLocal(startIso, endIso, breakMinutes = 0) {
+    const start = new Date(startIso).getTime();
+    const end = new Date(endIso).getTime();
+    if (isNaN(start) || isNaN(end) || end <= start) return 0;
+    const grossMinutes = (end - start) / (1000 * 60);
+    return Math.max(0, grossMinutes - breakMinutes);
+  }
+
+  function calculateEarningsLocal(shift) {
+    if (shift.status !== 'completed') return null;
+    if (!shift.actualClockIn || !shift.actualClockOut) return null;
+    if (typeof shift.hourlyRate !== 'number' || shift.hourlyRate < 0) return null;
+    
+    const breakMinutes = shift.breaks.reduce((acc, b) => acc + (b.durationMinutes || 0), 0);
+    const netMinutes = calculateNetDurationMinutesLocal(shift.actualClockIn, shift.actualClockOut, breakMinutes);
+    
+    return (Math.max(0, netMinutes) / 60) * shift.hourlyRate;
+  }
+
+  const shiftToCalc = {
+    status: 'completed',
+    hourlyRate: 30,
+    actualClockIn: '2026-10-04T08:00:00.000Z',
+    actualClockOut: '2026-10-04T12:00:00.000Z', // 4 hours = 240 mins
+    breaks: [{ durationMinutes: 30 }]
+  }; // Net = 210 mins. Earnings = (210/60) * 30 = 3.5 * 30 = 105
+  
+  assert.strictEqual(calculateEarningsLocal(shiftToCalc), 105);
+  
+  const shiftMissingRate = { ...shiftToCalc, hourlyRate: undefined };
+  assert.strictEqual(calculateEarningsLocal(shiftMissingRate), null);
+  
+  const activeShiftToCalc = { ...shiftToCalc, status: 'active' };
+  assert.strictEqual(calculateEarningsLocal(activeShiftToCalc), null);
+
+  console.log('  -> PASS: Earnings properly calculated deducting breaks, and unavailable rates handled.');
+
+  console.log('\nAll 8 Shift Management & Integrity test suites passed successfully!');
 }
 
 runTests().catch((err) => {

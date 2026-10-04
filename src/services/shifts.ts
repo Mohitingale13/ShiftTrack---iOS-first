@@ -1,3 +1,4 @@
+import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import { CreateShiftInput, ShiftRecord } from '../types';
 import { getStartOfWeek } from '../utils/date';
@@ -45,7 +46,7 @@ function normalizeShiftRecord(shift: ShiftRecord): ShiftRecord {
 /**
  * Creates seed shifts for the current week for hospitality staff.
  */
-function createSeedShifts(userId: string, hourlyRate: number = 18.50): ShiftRecord[] {
+function createSeedShifts(userId: string, hourlyRate: number = 30): ShiftRecord[] {
   const monday = getStartOfWeek(new Date());
 
   // Helper to make a date on day offset (0 = Monday, 1 = Tuesday, ...)
@@ -204,13 +205,30 @@ export async function fetchShiftsApi(
     throw new Error('Simulated network error: Unable to connect to shift server. Tap Retry to reconnect.');
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 350));
+  // Reliable Network Check
+  try {
+    const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+    if (isWeb) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('Network offline');
+      }
+    } else {
+      const networkState = await Network.getNetworkStateAsync();
+      if (networkState.isConnected === false) {
+        throw new Error('Network offline');
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message === 'Network offline') {
+      throw new Error('Network offline: No internet connection. Tap Retry to reconnect.');
+    }
+  } await new Promise((resolve) => setTimeout(resolve, 350));
 
   const options: FetchShiftsOptions = typeof optionsOrRate === 'number'
     ? { hourlyRate: optionsOrRate }
     : (optionsOrRate || {});
 
-  const hourlyRate = options.hourlyRate ?? 18.50;
+  const hourlyRate = options.hourlyRate ?? 30;
 
   if (!inMemoryShiftsCache) {
     const persisted = await loadPersistedShifts();
@@ -222,7 +240,28 @@ export async function fetchShiftsApi(
     }
   }
 
+  
+  // Automatically mark past scheduled shifts as missed
+  let cacheChanged = false;
+  const nowTs = Date.now();
+  if (inMemoryShiftsCache) {
+    inMemoryShiftsCache = inMemoryShiftsCache.map(shift => {
+      if (shift.status === 'scheduled') {
+        const endTs = new Date(shift.scheduledEnd).getTime();
+        if (!isNaN(endTs) && nowTs >= endTs) {
+          cacheChanged = true;
+          return { ...shift, status: 'missed' };
+        }
+      }
+      return shift;
+    });
+    if (cacheChanged) {
+      await savePersistedShifts(inMemoryShiftsCache);
+    }
+  }
+
   let result = [...inMemoryShiftsCache].filter((s) => s.userId === userId);
+
 
   // If weekStart parameter is provided (e.g. '2026-09-28'), filter shifts in that week
   if (options.weekStart) {
@@ -246,7 +285,7 @@ export async function fetchShiftsApi(
 export async function createShiftApi(
   userId: string,
   input: CreateShiftInput,
-  hourlyRate: number = 18.50
+  hourlyRate: number = 30
 ): Promise<ShiftRecord> {
   await new Promise((resolve) => setTimeout(resolve, 400));
 
@@ -338,7 +377,7 @@ export async function patchShiftApi(shiftId: string, updates: Partial<ShiftRecor
 export async function startShiftApi(
   userId: string,
   shiftId?: string,
-  hourlyRate: number = 18.50
+  hourlyRate: number = 30
 ): Promise<ShiftRecord> {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -419,4 +458,31 @@ export async function endShiftApi(shiftId: string): Promise<ShiftRecord> {
     status: 'completed',
     endTime: nowIso,
   });
+}
+/**
+ * Deletes a shift by ID. Useful for removing custom test shifts.
+ */
+export async function deleteShiftApi(shiftId: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  if (!inMemoryShiftsCache) {
+    inMemoryShiftsCache = (await loadPersistedShifts()) || [];
+  }
+
+  inMemoryShiftsCache = inMemoryShiftsCache.filter((s) => s.id !== shiftId);
+  await savePersistedShifts(inMemoryShiftsCache);
+}
+
+/**
+ * Resets shifts data back to baseline seed shifts.
+ */
+export async function resetShiftsToSeedApi(
+  userId: string,
+  hourlyRate: number = 30
+): Promise<ShiftRecord[]> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const seeds = createSeedShifts(userId, hourlyRate);
+  inMemoryShiftsCache = seeds;
+  await savePersistedShifts(seeds);
+  return seeds;
 }

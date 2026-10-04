@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
   ActiveShiftCard,
@@ -22,10 +24,29 @@ import {
 } from '../../components';
 import { useAuth } from '../../state/AuthContext';
 import { useShifts } from '../../state/ShiftContext';
-import { formatShortDate, getEndOfWeek, getStartOfWeek } from '../../utils/date';
+import { ShiftRecord } from '../../types';
+import { formatShortDate, formatTime, getEndOfWeek, getStartOfWeek } from '../../utils/date';
+import { calculateEarnings, formatCurrency } from '../../utils/earnings';
 import { borderRadius, colors, layout, spacing } from '../../theme';
 import { hapticFeedback } from '../../utils/haptics';
 import { isSimulateShiftApiError, setSimulateShiftApiError } from '../../services';
+
+function formatRoleTitle(role?: string): string {
+  switch (role?.toLowerCase()) {
+    case 'server':
+      return 'Service Staff';
+    case 'bartender':
+      return 'Bartender';
+    case 'host':
+      return 'Host';
+    case 'cook':
+      return 'Kitchen Staff';
+    case 'manager':
+      return 'Shift Manager';
+    default:
+      return 'Service Staff';
+  }
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -40,6 +61,8 @@ export default function HomeScreen() {
     refreshShifts,
     startShift,
     endShift,
+    deleteShift,
+    resetShifts,
     clearError,
   } = useShifts();
 
@@ -89,6 +112,78 @@ export default function HomeScreen() {
     }
   };
 
+  const handleDeleteShiftPrompt = (shift: ShiftRecord) => {
+    if (shift.status === 'active') {
+      const msg = 'You cannot delete a shift while it is actively in progress. Clock out first.';
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Active Shift', msg);
+      }
+      return;
+    }
+
+    hapticFeedback.warning();
+    const title = 'Delete Shift';
+    const message = "Delete test shift for " + formatShortDate(shift.scheduledStart) + " (" + formatTime(shift.scheduledStart) + " - " + formatTime(shift.scheduledEnd) + ")?";
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(title + "\n\n" + message)) {
+        deleteShift(shift.id)
+          .then(() => hapticFeedback.success())
+          .catch(() => hapticFeedback.error());
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteShift(shift.id);
+            hapticFeedback.success();
+          } catch {
+            hapticFeedback.error();
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleResetSchedulePrompt = () => {
+    hapticFeedback.warning();
+    const title = 'Reset Test Schedule?';
+    const message = 'Restore all default seed shifts and remove custom test shifts created during testing?';
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(title + "\n\n" + message)) {
+        resetShifts()
+          .then(() => hapticFeedback.success())
+          .catch(() => hapticFeedback.error());
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset to Defaults',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await resetShifts();
+            hapticFeedback.success();
+          } catch {
+            hapticFeedback.error();
+          }
+        },
+      },
+    ]);
+  };
+
   const handleToggleSimulateError = () => {
     const next = !isSimulateShiftApiError();
     setSimulateShiftApiError(next);
@@ -103,9 +198,14 @@ export default function HomeScreen() {
     handleRefresh();
   };
 
+
   const weekStart = getStartOfWeek();
   const weekEnd = getEndOfWeek();
-  const weekRangeLabel = `${formatShortDate(weekStart.toISOString())} - ${formatShortDate(weekEnd.toISOString())}`;
+  const weekRangeLabel = formatShortDate(weekStart.toISOString()) + " - " + formatShortDate(weekEnd.toISOString());
+
+  const completedShifts = weeklyShifts.filter((s: ShiftRecord) => s.status === 'completed');
+  const weeklyEarningsAmount = completedShifts.reduce((total: number, s: ShiftRecord) => total + (calculateEarnings(s) || 0), 0);
+
 
   return (
     <ScreenBackground style={styles.screen}>
@@ -140,7 +240,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.rateBadge}>
-                  <Text style={styles.rateText}>{`${user?.role?.toUpperCase() ?? 'SERVER'} \u2022 \u20B9${user?.hourlyRate?.toFixed(2) ?? '18.50'}/hr`}</Text>
+                  <Text style={styles.rateText}>{formatRoleTitle(user?.role) + " - Rs. " + (user?.hourlyRate || '30') + "/hr"}</Text>
                 </View>
               </View>
 
@@ -193,10 +293,24 @@ export default function HomeScreen() {
 
           {/* Weekly Schedule Section */}
           <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Weekly Schedule</Text>
-              <Text style={styles.sectionSubtitle}>{weekRangeLabel}</Text>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onLongPress={handleResetSchedulePrompt}
+              delayLongPress={700}
+              accessibilityRole="button"
+              accessibilityLabel="Hold to reset test schedule to defaults"
+            >
+<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} style={{ marginRight: 6, marginBottom: 2 }} />
+                <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+              </View>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                <Text style={styles.sectionSubtitle}>{weekRangeLabel}</Text>
+                {weeklyEarningsAmount > 0 && (
+                  <Text style={styles.weeklyEarningsText}>Total: {formatCurrency(weeklyEarningsAmount)}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.addShiftButton}
@@ -208,7 +322,10 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Schedule new shift"
             >
-              <Text style={styles.addShiftText}>+ Add Shift</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="add-circle" size={16} color={colors.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.addShiftText}>Add Shift</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -241,6 +358,7 @@ export default function HomeScreen() {
                   shift={shift}
                   onClockIn={handleStartShift}
                   canClockIn={!activeShift}
+                  onLongPress={handleDeleteShiftPrompt}
                 />
               ))}
             </View>
@@ -282,12 +400,14 @@ const styles = StyleSheet.create({
   sessionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 132, 255, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: borderRadius.pill,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(10, 132, 255, 0.25)',
+    borderColor: 'rgba(203, 213, 225, 0.85)',
+    elevation: 1,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)' } as any) : {}),
   },
   sessionDot: {
     width: 6,
@@ -303,17 +423,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   rateBadge: {
-    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: borderRadius.pill,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.08)',
+    borderColor: 'rgba(203, 213, 225, 0.85)',
+    elevation: 1,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)' } as any) : {}),
   },
   rateText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: colors.textSecondary,
+    fontWeight: '800',
+    color: '#0F172A',
     letterSpacing: 0.5,
   },
   userName: {
@@ -443,4 +565,5 @@ const styles = StyleSheet.create({
   shiftsList: {
     marginTop: spacing.xs,
   },
+  weeklyEarningsText: { fontSize: 13, fontWeight: '700', color: '#34C759' },
 });
