@@ -22,14 +22,14 @@ A mobile shift-tracking application designed for hospitality staff to manage wor
 - *Note:* Native iOS Simulator is not available on Windows. Verification was performed via Expo Go.
 
 ### Installation
-`ash
+```bash
 git clone https://github.com/Mohitingale13/ShiftTrack---iOS-first.git
 cd ShiftTrack---iOS-first
 npm install
-`
+```
 
 ### Start Development Server
-`ash
+```bash
 # Run on web browser
 npx expo start --web
 
@@ -38,18 +38,18 @@ npx expo start --android
 
 # Run via Expo Go app for iOS/Android
 npx expo start
-`
+```
 
 ### Assessment Test Credentials
-- **Email:** staff@shifttrack.test
-- **Password:** Password123
+- **Email:** `staff@shifttrack.test`
+- **Password:** `Password123`
 *(An "Auto-fill Staff Account" button is provided on the sign-in screen for one-tap testing).*
 
 ---
 
 ## Architecture & Persistence
 
-`
+```text
 ShiftTrack/
 |-- src/
 |   |-- app/                # Expo Router screens
@@ -58,12 +58,12 @@ ShiftTrack/
 |   |-- state/              # Global state (AuthContext, ShiftContext)
 |   |-- theme/              # Apple frosted-glass design tokens
 |   \-- utils/              # Time, date, and earnings utilities
-`
+```
 
 ### Mock API & Persistence
-The application relies on an internal mock service layer (src/services/auth.ts, src/services/shifts.ts) simulating a REST backend with artificial latency (300ms-500ms). The app relies entirely on local storage and does not require a deployed backend to run. 
+The application relies on an internal mock service layer (`src/services/auth.ts`, `src/services/shifts.ts`) simulating a REST backend with artificial latency (300ms-500ms). The app relies entirely on local storage and does not require a deployed backend to run. 
 
-Uses **Expo SecureStore** for native session persistence, with a browser storage fallback (window.localStorage) for web. The active elapsed timer is recalculated from the persisted clock-in timestamp using the device clock, allowing the timer to resume correctly after backgrounding.
+Uses **Expo SecureStore** for native session persistence, with a browser storage fallback (`window.localStorage`) for web. The active elapsed timer is recalculated from the persisted clock-in timestamp using the device clock, allowing the timer to resume correctly after backgrounding.
 
 ---
 
@@ -71,7 +71,7 @@ Uses **Expo SecureStore** for native session persistence, with a browser storage
 
 The following checks pass successfully on the current codebase:
 
-`ash
+```bash
 # Run full automated test suite (14 tests passed: Auth + Shift Logic + Integrity)
 npm test
 
@@ -80,7 +80,7 @@ npx tsc --noEmit
 
 # Run Expo dependency and configuration diagnostics (20/21 checks passed)
 npx expo-doctor
-`
+```
 
 ---
 
@@ -88,4 +88,4 @@ npx expo-doctor
 
 - The application uses a local mock service layer; no production backend is connected.
 - Native iOS Simulator testing was not performed locally on Windows. The app was verified using the available Expo Go development environment.
-- The expo-doctor diagnostic currently reports 20/21 checks passing due to a missing peer dependency warning (expo-font for @expo/vector-icons). This does not affect execution in the development environment.
+- The `expo-doctor` diagnostic currently reports 20/21 checks passing due to a missing peer dependency warning (`expo-font` for `@expo/vector-icons`). This does not affect execution in the development environment.
